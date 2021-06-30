@@ -593,11 +593,14 @@ list( APPEND SOURCES
       >
 
       # Deep Learning Effects
+      # TODO: need to add a conditional for networking
       $<$<BOOL:${USE_LIBTORCH}>:
          effects/deeplearning/DeepModel.cpp
          effects/deeplearning/DeepModel.h
          effects/deeplearning/EffectDeepLearning.cpp
          effects/deeplearning/EffectDeepLearning.h
+         effects/deeplearning/DeepModelManager.cpp
+         effects/deeplearning/DeepModelManager.h
 
          effects/SourceSep.h
          effects/SourceSep.cpp
