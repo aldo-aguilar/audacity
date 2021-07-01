@@ -12,7 +12,7 @@
          "type": "array",
          "items": {"type": "string"}
       }, 
-      "sample_rate": {"type": "number"}
+      "sample_rate": {"type": "integer"}
    }, 
    "required": ["name", "author", "description", "id", "domain", 
                "effect", "multichannel", "labels", "sample_rate"]
