@@ -58,6 +58,7 @@ public:
    // model metadata to the user
    std::string QueryAsString(const char *key);
    std::vector<std::string> GetLabels();
+   rapidjson::Document GetCard();
 };
 
 class DeepModel
