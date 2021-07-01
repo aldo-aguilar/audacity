@@ -11,9 +11,10 @@
 /**
 
 \class SourceSep
-\brief SourceSep is an effect for source separation using DeepLearning 
 
-TODO: add more desc
+\brief SourceSep SourceSep is an Audacity Effect that performs Source Separation.
+                 The goal of audio source separation is to isolate the sound sources 
+                 in a given mixture of sounds. 
 
 */
 /*******************************************************************/

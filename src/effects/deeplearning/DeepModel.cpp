@@ -8,6 +8,7 @@
    Hugo Flores Garcia
 
 ******************************************************************/
+
 #include "DeepModel.h"
 
 #include <torch/script.h>

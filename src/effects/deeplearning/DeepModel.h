@@ -16,8 +16,6 @@
 \class ModelCard
 \brief model metadata for deep learning models
 
-TODO: add a more thorough description
-
 */
 /*******************************************************************/
 

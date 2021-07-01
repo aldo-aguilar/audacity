@@ -14,8 +14,6 @@
 \brief EffectDeepLearning provides methods for using deep learning
                             models in Audacity Effects. 
 
-TODO: add more desc
-
 */
 /*******************************************************************/
 
@@ -62,7 +60,7 @@ protected:
 
    // writes an output tensor to a track
    // tensor should be shape (1, samples)
-   void TensorToTrack(torch::Tensor output, WaveTrack::Holder track, 
+   void TensorToTrack(torch::Tensor waveform, WaveTrack::Holder track, 
                       double tStart, double tEnd);
 
    // returns a list of block indices. Use these to 
