@@ -132,12 +132,12 @@ std::vector<std::string> ModelCard::GetLabels()
    return labels;
 }
 
-rapidjson::Document ModelCard::GetCard()
+rapidjson::Document ModelCard::GetDoc()
 {
-   rapidjson::Document::AllocatorType& allocator = mCard.GetAllocator();
+   rapidjson::Document::AllocatorType& allocator = mDoc.GetAllocator();
 
    rapidjson::Document copy;
-   copy.CopyFrom(mCard, allocator);
+   copy.CopyFrom(mDoc, allocator);
 
    if (!copy.IsObject()) copy.SetObject();
 
@@ -169,7 +169,7 @@ bool DeepModel::Load(const std::string &modelPath)
       std::string data = extraFilesMap_["metadata.json"];
       mCard->InitFromJSONString(data);
 
-      mSampleRate = mCard->GetCard()["sample_rate"].GetInt();
+      mSampleRate = mCard->GetDoc()["sample_rate"].GetInt();
       
       mLoaded = true;
    }

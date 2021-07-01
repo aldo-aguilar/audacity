@@ -38,7 +38,7 @@ FilePath DLModelsDir();
 struct ModelCard
 {
 private:
-   rapidjson::Document mCard;
+   rapidjson::Document mDoc;
    rapidjson::Document mSchema;
 
    void Validate(rapidjson::Document &d);
@@ -58,7 +58,7 @@ public:
    // model metadata to the user
    std::string QueryAsString(const char *key);
    std::vector<std::string> GetLabels();
-   rapidjson::Document GetCard();
+   rapidjson::Document GetDoc();
 };
 
 class DeepModel
