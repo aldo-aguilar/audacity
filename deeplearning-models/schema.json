@@ -1,0 +1,19 @@
+{
+   "type": "object",
+   "properties": {
+      "name": {"type": "string" },
+      "author": {"type": "string"},
+      "description": {"type": "string"},
+      "id": {"type": "string"},
+      "domain": {"type": "string"},
+      "effect": {"type": "string"},
+      "multichannel": {"type": "boolean"},
+      "labels": {
+         "type": "array",
+         "items": {"type": "string"}
+      }, 
+      "sample_rate": {"type": "number"}
+   }, 
+   "required": ["name", "author", "description", "id", "domain", 
+               "effect", "multichannel", "labels", "sample_rate"]
+}

@@ -6,6 +6,7 @@ message( STATUS "========== Configuring ${TARGET} ==========" )
 def_vars()
 
 list( APPEND SOURCES
+   schema.json
    resampler.ts
 )
 

@@ -95,7 +95,7 @@ bool EffectSourceSep::ProcessOne(WaveTrack *leader,
 
    // initialize source tracks, one for each source that we will separate
    std::vector<WaveTrack::Holder> sourceTracks;
-   std::vector<std::string>sourceLabels = mModel->GetLabels();
+   std::vector<std::string> sourceLabels = mModel->GetCard()->GetLabels();
    sourceTracks = CreateSourceTracks(leader, sourceLabels);
    
    // Initiate processing buffer, most likely shorter than
@@ -211,7 +211,7 @@ void EffectSourceSep::AddMetadataEntry(ShuttleGui &S, std::string desc,
       font = font.MakeBold(); 
       descText->SetFont(font); 
    
-      std::string value = mModel->QueryMetadata(key.c_str()); 
+      std::string value = mModel->GetCard()->QueryAsString(key.c_str()); 
       wxStaticText *text =  S.AddVariableText( 
          TranslatableString(wxString(value).c_str(), {})); 
 
@@ -224,7 +224,6 @@ void EffectSourceSep::PopulateMetadata(ShuttleGui &S)
 {
    // TODO: this does not take into account the possible
    // depth of the metadata.
-   rapidjson::Document document = mModel->GetMetadata();
    S.StartVerticalLay(wxCENTER, false);
    {
       //TODO: bold not working, nicer table style
@@ -242,7 +241,7 @@ void EffectSourceSep::UpdateMetadataFields(){
       std::string key = pair.first;
       wxStaticText *field = pair.second;
 
-      std::string value = mModel->QueryMetadata(key.c_str());
+      std::string value = mModel->GetCard()->QueryAsString(key.c_str());
       field->SetLabel(wxString(value));
       field->SetName(wxString(value));
    }
