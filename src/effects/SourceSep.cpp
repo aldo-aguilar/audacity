@@ -11,9 +11,9 @@
 /**
 
 \class SourceSep
-\brief SourceSep is an effect for source separation using deep learning 
-
-TODO: add a more thorough description
+\brief SourceSep SourceSep is an Audacity Effect that performs Source Separation.
+                 The goal of audio source separation is to isolate the sound sources 
+                 in a given mixture of sounds. 
 
 */
 /*******************************************************************/
@@ -60,7 +60,8 @@ ComponentInterfaceSymbol EffectSourceSep::GetSymbol()
 
 TranslatableString EffectSourceSep::GetDescription()
 {
-   return XO("Source Separation!"); // TODO
+   return XO("The goal of audio source separation is to isolate \
+             the sound sources in a given mixture of sounds."); // TODO
 }
 
 wxString EffectSourceSep::ManualPage()
@@ -186,9 +187,9 @@ void EffectSourceSep::PopulateOrExchange(ShuttleGui &S)
 
          std::string modelDesc;
          if (mModel->IsLoaded()) 
-            modelDesc = "loaded model successfully";
+            modelDesc = "Ready";
          else 
-            modelDesc = "pls load a model!";
+            modelDesc = "Not Ready";
 
          mDescription = S.AddVariableText(
             TranslatableString(wxString(modelDesc).c_str(), {}));
@@ -253,10 +254,10 @@ void EffectSourceSep::OnLoadButton(wxCommandEvent &WXUNUSED(event))
                                      XO("Load Source Separation Model"),
                                      wxEmptyString,
                                      wxEmptyString, 
-                                     wxT("ts"),
+                                     wxT("pt"),
                                     { FileNames::FileType(
-                                       XO("TorchScript Files"), 
-                                       {wxT("ts")}, true
+                                       XO("TorchScript"), 
+                                       {wxT("pt")}, true
                                     )},
                                      wxFD_OPEN | wxRESIZE_BORDER,
                                      nullptr);
@@ -266,10 +267,18 @@ void EffectSourceSep::OnLoadButton(wxCommandEvent &WXUNUSED(event))
    // attempt load deep learning model
    // TODO: what's the fallback when the model doesn't load? 
    wxString descStr;
-   if (!mModel->Load(path.ToStdString()))
-      descStr = wxString("error loading model :(");
-   else
-      descStr = wxString("loaded model succesfully!");
+   try 
+   {
+      mModel->Load(path.ToStdString()); 
+      descStr = wxString("Ready");
+   }
+   catch(const std::exception& e)
+   {
+      Effect::MessageBox(XO("An error occured while loading the model."), 
+                        wxOK | wxICON_ERROR
+      );
+      descStr = wxString("Not Ready");
+   }
 
    mDescription->SetLabel(descStr);
    mDescription->SetName(descStr);

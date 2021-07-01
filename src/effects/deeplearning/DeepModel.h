@@ -31,11 +31,20 @@ TODO: add a more thorough description
 #include <rapidjson/schema.h>
 #include "rapidjson/prettywriter.h" 
 
+using ModulePtr = std::unique_ptr<torch::jit::script::Module>;
 using ModelLabels = std::vector<std::string>;
 using CardSchema = std::unique_ptr<rapidjson::SchemaDocument>;
 FilePath DLModelsDir(); 
 
-struct ModelCard
+class ModelException : public std::exception
+{
+public:
+   ModelException(const std::string& msg) : m_msg(msg) {}
+   virtual const char* what() const throw () {return m_msg.c_str();}
+   const std::string m_msg;
+};
+
+class ModelCard
 {
 private:
    rapidjson::Document mDoc;
@@ -47,42 +56,62 @@ private:
    
 public:
    ModelCard();
-   void InitFromFile(const std::string &str);
+
+   // all of these may throw a ModelException if
+   // the input document does not match the model schema
+   void InitFromFile(const std::string &path);
    void InitFromJSONString(const std::string &str);
-   void InitFromHuggingFace(const std::string &repoUrl);
 
    // \brief queries the metadata dictionary, 
    // will convert any JSON type to a non-prettified string
    // if the key does not exist, returns "None"
    // useful for when we want to display certain 
-   // model metadata to the user
+   // metadata fields to the user, even if the doc is empty.
    std::string QueryAsString(const char *key);
+
+   // returns the labels associated with the model. 
    std::vector<std::string> GetLabels();
+
+   // get a copy of the JSON document object. 
    rapidjson::Document GetDoc();
 };
 
 class DeepModel
 {
 private:
-   torch::jit::script::Module mModel;
-   torch::jit::script::Module mResampler;
-   bool mLoaded;
+   ModulePtr mModel;
+   ModulePtr mResampler;
 
    // rapidjson::Document mMetadata;
    std::shared_ptr<ModelCard> mCard;
 
    int mSampleRate;
+   bool mLoaded;
+
+   void Cleanup();
 
 public:
    DeepModel();
-   bool Load(const std::string &modelPath);
+
+   // @execsafety: strong 
+   // load a torchscript model along with it's metadata, 
+   // which is stored in a ModelCard.
+   void Load(const std::string &modelPath);
    bool IsLoaded(){ return mLoaded; };
 
+   // use the ModelCard to access metadata attribute's in the 
+   // models metadata.json file. 
    std::shared_ptr<ModelCard> GetCard(){ return mCard; };
-
    int GetSampleRate(){return mSampleRate;}
 
+   // @execsafety: strong (may throw if model is not loaded or 
+   // forward pass fails)
+   // waveform should be shape (channels, samples)
    torch::Tensor Resample(const torch::Tensor &waveform, int sampleRateIn, int sampleRateOut);
+
+   // @execsafety: strong (may throw if model is not loaded or 
+   // forward pass fails)
+   // waveform should be shape (channels, samples)
    torch::Tensor Forward(const torch::Tensor &waveform);
 };
 

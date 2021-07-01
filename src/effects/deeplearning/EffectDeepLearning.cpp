@@ -29,7 +29,6 @@ bool EffectDeepLearning::Process()
    if (!mModel->IsLoaded())
    {
       Effect::MessageBox(
-         // TODO: i18n-hint:  */
          XO("Please load a model before applying the effect."),
          wxICON_ERROR );
       return false;
@@ -121,7 +120,7 @@ torch::Tensor EffectDeepLearning::BuildMonoTensor(WaveTrack *track, float *buffe
 {
    //Get the samples from the track and put them in the buffer
    if (!track->GetFloats(buffer, start, len))
-      throw std::exception();
+      throw std::runtime_error("An error occurred while copying samples to tensor buffer.");
 
    // get tensor input from buffer
    torch::Tensor audio = torch::from_blob(buffer, len, 
@@ -156,8 +155,10 @@ torch::Tensor EffectDeepLearning::ForwardPass(torch::Tensor input)
    }
    catch (const std::exception &e)
    {
+      // TODO: what do 
       std::cerr<<e.what();
-      Effect::MessageBox(XO("An error occurred during the forward pass"),
+      Effect::MessageBox(XO("An error occurred during the forward pass"
+                             "This model may be broken."),
          wxOK | wxICON_ERROR
       );
 
@@ -166,16 +167,15 @@ torch::Tensor EffectDeepLearning::ForwardPass(torch::Tensor input)
    return output;
 }
 
-void EffectDeepLearning::TensorToTrack(torch::Tensor output, WaveTrack::Holder track, 
+void EffectDeepLearning::TensorToTrack(torch::Tensor waveform, WaveTrack::Holder track, 
                                    double tStart, double tEnd)
 {
-   // TODO: exception: input audio should be shape (1, samples)
-   if (!(output.size(0) == 1))
-      throw std::exception(); 
+   if (!(waveform.size(0) == 1))
+      throw std::runtime_error("Input waveform tensor should be shape (1, samples)"); 
 
    // get the data pointer
-   float *data = output.contiguous().data_ptr<float>();
-   size_t outputLen = output.size(-1);
+   float *data = waveform.contiguous().data_ptr<float>();
+   size_t outputLen = waveform.size(-1);
 
    // add the data to a temporary track, then 
    // paste on our output track
