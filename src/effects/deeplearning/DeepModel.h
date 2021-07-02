@@ -34,6 +34,8 @@ using ModelLabels = std::vector<std::string>;
 using CardSchema = std::unique_ptr<rapidjson::SchemaDocument>;
 FilePath DLModelsDir(); 
 
+const std::string kSchemaPath = wxFileName(DLModelsDir(), wxT("schema.json")).GetFullPath().ToStdString();
+
 class ModelException : public std::exception
 {
 public:
@@ -45,20 +47,28 @@ public:
 class ModelCard
 {
 private:
-   rapidjson::Document mDoc;
-   rapidjson::Document mSchema;
 
-   void Validate(rapidjson::Document &d);
-   rapidjson::Document FromString(const std::string &str);
-   rapidjson::Document FromFile(const std::string &path);
-   
+   static rapidjson::Document FromString(const std::string &str);
+   static rapidjson::Document FromFile(const std::string &path);
+
+   std::shared_ptr<rapidjson::Document> mSchema;
+   std::shared_ptr<rapidjson::Document> mDoc;
+
 public:
+   // all constructors may throw if the provided JSON doc does not match the schema
+   // TODO: make sure exec safety is strong?
    ModelCard();
+   ModelCard(std::shared_ptr<rapidjson::Document> doc);
+   ModelCard(const std::string &JSONstr);
+   ModelCard CreateFromFile(const std::string &path);
 
-   // all of these may throw a ModelException if
-   // the input document does not match the model schema
-   void InitFromFile(const std::string &path);
-   void InitFromJSONString(const std::string &str);
+   bool IsValid();
+
+   // validate an arbitrary document with the card schema
+   void Validate(const rapidjson::Document &d);
+   
+   // alternative constructor (from file)
+   static ModelCard InitFromFile(const std::string &path);
 
    // \brief queries the metadata dictionary, 
    // will convert any JSON type to a non-prettified string
@@ -70,8 +80,20 @@ public:
    // returns the labels associated with the model. 
    std::vector<std::string> GetLabels();
 
+   // set the desired schema for the model card
+   void SetSchema(std::shared_ptr<rapidjson::Document> schema);
+
    // get a copy of the JSON document object. 
-   rapidjson::Document GetDoc();
+   std::shared_ptr<rapidjson::Document> GetDoc();
+
+   // may throw if doesn't exist
+   // use this to access metadata values
+   // @execsafety strong
+   rapidjson::Value &operator[](const char *name){ 
+      if (!mDoc->HasMember(name))
+         throw ModelException("Invalid Model Card field: " + std::string(name));
+      return mDoc->operator[](name);
+   };
 };
 
 class DeepModel
@@ -99,7 +121,7 @@ public:
 
    // use the ModelCard to access metadata attribute's in the 
    // models metadata.json file. 
-   std::shared_ptr<ModelCard> GetCard(){ return mCard; };
+   std::shared_ptr<ModelCard> GetCard();
    int GetSampleRate(){return mSampleRate;}
 
    // @execsafety: strong (may throw if model is not loaded or 

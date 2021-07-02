@@ -7,7 +7,7 @@ def_vars()
 
 list( APPEND SOURCES
    schema.json
-   resampler.ts
+   resampler.pt
 )
 
 foreach( source ${SOURCES} )

@@ -33,31 +33,44 @@ FilePath DLModelsDir()
 
 ModelCard::ModelCard()
 {
-   // load the schema
-   std::string schemaPath = wxFileName(DLModelsDir(), wxT("schema.json")).GetFullPath().ToStdString(); // TODO
-   mSchema = FromFile(schemaPath);
-
-   mDoc.SetObject();
+   // add an empty card
+   std::shared_ptr<rapidjson::Document> doc = std::make_shared<rapidjson::Document>();
+   doc->SetObject();
+   (*this) = ModelCard(doc);
 }
 
-void ModelCard::InitFromFile(const std::string &path)
+ModelCard::ModelCard(std::shared_ptr<rapidjson::Document> doc) : mDoc(doc) { }
+
+ModelCard::ModelCard(const std::string &JSONstr)
 {
-   mDoc = FromFile(path);
-   Validate(mDoc);
+   std::shared_ptr<rapidjson::Document> doc = std::make_shared<rapidjson::Document>(FromString(JSONstr));
+   *this = ModelCard(doc);
 }
 
-void ModelCard::InitFromJSONString(const std::string &str)
+ModelCard ModelCard::CreateFromFile(const std::string &path)
 {
-   mDoc = FromString(str);
-   Validate(mDoc);
+   auto doc = std::make_shared<rapidjson::Document>(FromFile(path));
+   return ModelCard(doc);
 }
 
-void ModelCard::Validate(rapidjson::Document &d)
+void ModelCard::SetSchema(std::shared_ptr<rapidjson::Document> schema) 
 {
-   rapidjson::SchemaDocument schema(mSchema);
+   mSchema = schema;
+}
+
+bool ModelCard::IsValid()
+{
+   rapidjson::SchemaDocument schema(*mSchema);
    rapidjson::SchemaValidator validator(schema);
 
-   validator.Reset();
+   return (!mDoc->Accept(validator)); 
+}
+
+void ModelCard::Validate(const rapidjson::Document &d)
+{
+   rapidjson::SchemaDocument schema(*mSchema);
+   rapidjson::SchemaValidator validator(schema);
+
    if (!d.Accept(validator)) 
    {
       // Input JSON is invalid according to the schema
@@ -74,15 +87,15 @@ void ModelCard::Validate(rapidjson::Document &d)
       message += "invalid document: \n\t" 
                   + std::string(d.GetString()) + "\n";
       message += "schema document: \n\t" 
-                  + std::string(mSchema.GetString()) + "\n";
+                  + std::string(mSchema->GetString()) + "\n";
 
       throw ModelException(message);
    }
 }
 
-// https://rapidjson.org/md_doc_stream.html
 rapidjson::Document ModelCard::FromFile(const std::string &path)
 {
+   // https://rapidjson.org/md_doc_stream.html
    FILE* fp = fopen(path.c_str(), "r");
 
    char readBuffer[65536];
@@ -116,12 +129,12 @@ std::string ModelCard::QueryAsString(const char *key)
 {
    std::string output;
    // get the value as a string type
-   if (mDoc.HasMember(key))
+   if (mDoc->HasMember(key))
    {
       rapidjson::StringBuffer sBuffer;
       rapidjson::Writer<rapidjson::StringBuffer> writer(sBuffer);
 
-      mDoc[key].Accept(writer);
+      (*mDoc)[key].Accept(writer);
       output = sBuffer.GetString();
    }
    else
@@ -135,8 +148,8 @@ std::vector<std::string> ModelCard::GetLabels()
 {
    // iterate through the labels and collect
    std::vector<std::string> labels;
-   for (rapidjson::Value::ConstValueIterator itr = mDoc["labels"].Begin(); 
-                                             itr != mDoc["labels"].End();
+   for (rapidjson::Value::ConstValueIterator itr = (*mDoc)["labels"].Begin(); 
+                                             itr != (*mDoc)["labels"].End();
                                              ++itr)
    {
       labels.emplace_back(itr->GetString());
@@ -145,21 +158,16 @@ std::vector<std::string> ModelCard::GetLabels()
    return labels;
 }
 
-rapidjson::Document ModelCard::GetDoc()
+std::shared_ptr<rapidjson::Document> ModelCard::GetDoc()
 {
-   rapidjson::Document::AllocatorType& allocator = mDoc.GetAllocator();
-
-   rapidjson::Document copy;
-   copy.CopyFrom(mDoc, allocator);
-
-   if (!copy.IsObject()) copy.SetObject();
-
-   return copy;
+   return mDoc;
 }
 
 // DeepModel Implementation
 
-DeepModel::DeepModel() : mLoaded(false), mCard(std::make_shared<ModelCard>()){}
+DeepModel::DeepModel() : mLoaded(false),
+                         mCard(std::make_shared<ModelCard>())
+{}
 
 void DeepModel::Load(const std::string &modelPath)
 {
@@ -183,10 +191,10 @@ void DeepModel::Load(const std::string &modelPath)
 
       // load the model metadata
       std::string data = extraFilesMap_["metadata.json"];
-      mCard->InitFromJSONString(data);
+      mCard = std::make_shared<ModelCard>(data);
 
       // set sample rate
-      mSampleRate = mCard->GetDoc()["sample_rate"].GetInt();
+      mSampleRate = (*mCard)["sample_rate"].GetInt();
       
       // finally, mark as loaded
       mLoaded = true;
@@ -196,6 +204,11 @@ void DeepModel::Load(const std::string &modelPath)
       Cleanup();
       throw ModelException(e.what());
    }
+}
+
+std::shared_ptr<ModelCard> DeepModel::GetCard()
+{
+   return mCard;
 }
 
 void DeepModel::Cleanup()
