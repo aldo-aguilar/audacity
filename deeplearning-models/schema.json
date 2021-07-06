@@ -12,7 +12,10 @@
          "type": "array",
          "items": {"type": "string"}
       }, 
-      "sample_rate": {"type": "integer"}
+      "sample_rate": {"type": "integer"},
+      "repo_id": {"type": "string"},
+      "repo_user": {"type": "string"},
+      "repo_name": {"type": "string"}
    }, 
    "required": ["name", "author", "description", "id", "domain", 
                "effect", "multichannel", "labels", "sample_rate"]
