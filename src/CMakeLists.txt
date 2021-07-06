@@ -599,6 +599,9 @@ list( APPEND SOURCES
          effects/deeplearning/DeepModel.h
          effects/deeplearning/EffectDeepLearning.cpp
          effects/deeplearning/EffectDeepLearning.h
+
+         effects/deeplearning/ModelCard.cpp
+         effects/deeplearning/ModelCard.h
          effects/deeplearning/DeepModelManager.cpp
          effects/deeplearning/DeepModelManager.h
 
