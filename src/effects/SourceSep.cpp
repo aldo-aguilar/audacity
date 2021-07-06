@@ -26,6 +26,11 @@
 
 #include <torch/script.h>
 
+// EffectDeepLearning implementation
+
+std::string EffectSourceSep::GetEffectID()
+{ return "source-separation";}
+
 const ComponentInterfaceSymbol EffectSourceSep::Symbol
 { XO("Source Separation") };
 
@@ -91,7 +96,7 @@ bool EffectSourceSep::ProcessOne(WaveTrack *leader,
 
    // initialize source tracks, one for each source that we will separate
    std::vector<WaveTrack::Holder> sourceTracks;
-   std::vector<std::string> sourceLabels = mModel->GetCard()->GetLabels();
+   std::vector<std::string> sourceLabels = mModel->GetCard().GetLabels();
    sourceTracks = CreateSourceTracks(leader, sourceLabels);
    
    // Initiate processing buffer, most likely shorter than
@@ -207,7 +212,7 @@ void EffectSourceSep::AddMetadataEntry(ShuttleGui &S, std::string desc,
       font = font.MakeBold(); 
       descText->SetFont(font); 
    
-      std::string value = mModel->GetCard()->QueryAsString(key.c_str()); 
+      std::string value = mModel->GetCard().QueryAsString(key.c_str()); 
       wxStaticText *text =  S.AddVariableText( 
          TranslatableString(wxString(value).c_str(), {})); 
 
@@ -226,7 +231,6 @@ void EffectSourceSep::PopulateMetadata(ShuttleGui &S)
       AddMetadataEntry(S, "Model Name:", "name");
       AddMetadataEntry(S, "Separation Sample Rate:", "sample_rate");
       AddMetadataEntry(S, "Domain:", "domain");
-      AddMetadataEntry(S, "Number of Sources:", "n_src");
       AddMetadataEntry(S, "Output Sources:", "labels");
    }
    S.EndVerticalLay();
@@ -237,7 +241,7 @@ void EffectSourceSep::UpdateMetadataFields(){
       std::string key = pair.first;
       wxStaticText *field = pair.second;
 
-      std::string value = mModel->GetCard()->QueryAsString(key.c_str());
+      std::string value = mModel->GetCard().QueryAsString(key.c_str());
       field->SetLabel(wxString(value));
       field->SetName(wxString(value));
    }

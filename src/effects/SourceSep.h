@@ -38,6 +38,10 @@ public:
    EffectSourceSep();
    virtual ~EffectSourceSep();
 
+   // EffectDeepLearning implementation
+
+   std::string GetEffectID() override;
+
    // ComponentInterface implementation
 
    ComponentInterfaceSymbol GetSymbol() override;
