@@ -100,9 +100,6 @@ std::string DeepModel::QueryMetadata(const char *key)
 
 std::vector<std::string> DeepModel::GetLabels()
 {
-   assert(mMetadata.HasMember("n_src"));
-   assert(mMetadata["n_src"].GetInt() == mMetadata["labels"].Size());
-
    // iterate through the labels and collect
    std::vector<std::string> labels;
    for (rapidjson::Value::ConstValueIterator itr = mMetadata["labels"].Begin(); 
