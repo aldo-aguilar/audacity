@@ -89,6 +89,18 @@ size_t Request::getMaxRedirects () const noexcept
     return mMaxRedirects;
 }
 
+Request& Request::setBlocking(bool block) noexcept
+{
+    mBlocking = block;
+
+    return *this;
+}
+
+bool Request::getBlocking() const noexcept
+{
+    return mBlocking;
+}
+
 Request& Request::setTimeout (Timeout timeout) noexcept
 {
     mTimeout = timeout;
