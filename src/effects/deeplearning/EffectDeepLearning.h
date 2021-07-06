@@ -20,6 +20,7 @@
 #ifndef __AUDACITY_EFFECT_SOURCESEP__
 #define __AUDACITY_EFFECT_SOURCESEP__
 
+#include "DeepModelManager.h"
 #include "DeepModel.h"
 #include "../Effect.h"
 
@@ -39,6 +40,12 @@ public:
    virtual bool ProcessOne(WaveTrack * track, double tStart, double tEnd) = 0;
 
 protected:
+   // TODO: write instructions
+   virtual std::string GetDeepEffectID() = 0;
+
+   bool Init() override;
+   void End() override;
+
    // the deep model itself
    std::unique_ptr<DeepModel> mModel;
 
@@ -70,6 +77,9 @@ protected:
 
    // use this to update the progress ba
    int mCurrentTrackNum;
+
+private:
+   ModelCard mCard;
 };
 
 #endif

@@ -14,9 +14,25 @@
 #include <torch/script.h>
 
 EffectDeepLearning::EffectDeepLearning()
-{ 
-   // create an empty deep model
+{
+}
+
+bool EffectDeepLearning::Init()
+{
+   // DeepModelManager &manager = DeepModelManager::Get();
+   // std::string effectid = GetEffectID(); //TODO: maybe we want an enum for the effect id?
+   // mCard = manager.GetCached(effectid);
+   // mModel = manager.GetModel(mCard);
+
+   // TODO: except handling
    mModel = std::make_unique<DeepModel>();
+   return true; 
+}
+
+void EffectDeepLearning::End()
+{
+   // release model
+   mModel.reset();
 }
 
 bool EffectDeepLearning::Process()

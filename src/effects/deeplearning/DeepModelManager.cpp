@@ -15,42 +15,210 @@
 #include "IResponse.h"
 #include "Request.h"
 
-DeepModelManager::DeepModelManager()
-{}
-
-DeepModelManager::~DeepModelManager()
-{}
-
-bool DeepModelManager::RegisterModel(std::string path)
+DeepModelManager::DeepModelManager() : mSchema(ModelCard::CreateFromFile(kSchemaPath)),
+                                       mCards(ModelCardCollection(mSchema.GetDoc()))
 {
-   std::unique_ptr<DeepModel> model = std::make_unique<DeepModel>();
-
-   if (!model->Load(path))
-      return false;
-
-   rapidjson::Document metadata = model->GetMetadata();
-
-   assert(metadata.HasMember("name"));
-   assert(metadata["name"].IsString());
-   std::string name = metadata["name"].GetString();
-
-   assert(metadata.HasMember("effect"));
-   assert(metadata["effect"].IsString());
-
-   // TODO: need to add real validation for the model
-
-   mModels[name] = model;
 
 }
 
+DeepModelManager::~DeepModelManager()
+{
 
-std::unique_ptr<DeepModel> DeepModelManager::FromHuggingFace(std::string url)
+}
+
+DeepModelManager& DeepModelManager::Get()
+{
+   static DeepModelManager manager;
+
+   // NOTE: DEBUG
+   manager.FetchCards();
+
+   for (auto card: manager.mCards)
+   {
+      std::cout<<card.GetDoc()->GetString()<<std::endl;
+   }
+   // NOTE: DEBUG
+
+   return manager;
+}
+
+FilePath DeepModelManager::DLModelsDir()
+{
+   wxFileName modelsDir(FileNames::BaseDir(), wxEmptyString);
+   modelsDir.AppendDir(wxT("deeplearning-models"));
+   return modelsDir.GetFullPath();
+}
+
+FilePath DeepModelManager::GetRepoDir(const ModelCard &card)
+{
+   // TODO: do we really want these fields in the JSON file?
+   // or should they be members of the ModelCard class? 
+   wxFileName repoDir = DLModelsDir();
+   repoDir.AppendDir(card["repo_user"].GetString());
+   repoDir.AppendDir(card["repo_name"].GetString());
+   return repoDir.GetFullPath();
+}
+
+std::unique_ptr<DeepModel> DeepModelManager::GetModel(ModelCard &card)
 {
    std::unique_ptr<DeepModel> model = std::make_unique<DeepModel>();
+   model->SetCard(card);
 
-   audacity::network_manager::Request request(url);
-   auto response = audacity::network_manager::NetworkManager::GetInstance().doGet(request);
+   // TODO: raise exception if 
+   // TODO: only do if model is loaded, else return  an empty model
+   wxFileName path = wxFileName(GetRepoDir(card), "model.pt");
 
+   // finally, load
+   model->Load(path.GetFullPath().ToStdString());
 
    return model;
+}  
+
+ModelCard DeepModelManager::GetCached(std::string &effectID)
+{
+   // TODO
+   return ModelCard();
+}
+
+void DeepModelManager::FetchCards()
+{
+   RepoIDList repos = mHFWrapper.FetchRepos();
+
+   //TODO: exception handling 
+   for (std::string repoId : repos)
+   {
+      // fetch card and insert into mCards if not already there. 
+      ModelCard card = mHFWrapper.GetCard(repoId);
+
+      if (!mCards.Insert(card))
+         // TODO: if card is not accepted, log the card and validator output
+         // maybe insert should throw so we can log the trace
+         true;
+   }
+
+   // TODO: load from the installed repos as well
+   // make sure we don't have the same repo twice
+   // what if we got it from the HF wrapper but we 
+   // already had it installed? 
+}
+
+// HuggingFaceWrapper Implementation
+
+std::string HuggingFaceWrapper::GetRootURL(const std::string &repoID)
+{
+   std::stringstream url;
+   url<<"https://huggingface.co/models/"<<repoID<<"/resolve/main/";
+   return url.str();
+}
+
+HuggingFaceWrapper::HuggingFaceWrapper()
+{
+   mAPIEndpoint = "https://huggingface.co/api/";
+}
+
+RepoIDList HuggingFaceWrapper::FetchRepos()
+{
+   RepoIDList repos;
+
+   std::string query = mAPIEndpoint + "models?filter=audacity";
+
+   // TODO: handle exception in main thread
+   CompletionHandler handler = [&repos](int httpCode, std::string body)
+   {
+      // TODO: http code handling
+      ModelCard reposCard = ModelCard(body);
+      std::shared_ptr<rapidjson::Document> reposDoc = reposCard.GetDoc();
+
+      for (rapidjson::Value::ConstValueIterator itr = reposDoc->Begin();
+                                                itr != reposDoc->End();
+                                                ++itr)
+         // TODO: need to raise an exception if we can't get the object 
+         // or modelId
+         repos.emplace_back(itr->GetObject()["modelId"].GetString());
+   };
+
+   doGet(query, handler, /*block=*/true);
+
+   return repos;
+}
+
+ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
+{ 
+   std::string modelCardUrl = GetRootURL(repoID) + "/metadata.json";
+   ModelCard card = ModelCard();
+   // TODO: how do you handle an exception inside a thread, like this one? 
+   CompletionHandler completionHandler = [&card](int httpCode, std::string body)
+   { 
+      if (!(httpCode == 200))
+      {
+         std::stringstream msg;
+         msg << "GET request failed. Error code: " << httpCode;
+         throw ModelManagerException(msg.str());
+      }
+      else
+      { 
+         card = ModelCard(body);
+      }
+   };
+
+   doGet(modelCardUrl, completionHandler/*, null */);
+   
+   return card;
+}
+
+void HuggingFaceWrapper::DownloadModel(const ModelCard &card, const std::string &path)
+{
+   std::string modelUrl = GetRootURL(card["repo_id"].GetString()) + "/model.pt";
+
+   CompletionHandler completionHandler = [&card, &path](int httpCode, std::string body)
+   {
+      if (!(httpCode == 200))
+      {
+         std::stringstream msg;
+         msg << "GET request failed. Error code: " << httpCode;
+         throw ModelManagerException(msg.str());
+      }
+      else
+      {  
+         std::istringstream modulestr(body);
+
+         DeepModel tmpModel = DeepModel();
+         ModelCard cardCopy = ModelCard(card);
+         tmpModel.SetCard(cardCopy);
+         tmpModel.Load(modulestr);
+         tmpModel.Save(path);
+      }
+   };
+}
+
+void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHandler, bool block /*, ProgressCallback progress */)
+{
+   using namespace audacity::network_manager;
+
+   Request request(url);
+
+   NetworkManager& manager = NetworkManager::GetInstance();
+   ResponsePtr response = manager.doGet(request);
+
+#if 0
+   // set callback for download progress
+   response->setDownloadProgressCallback(progress);
+#endif
+
+   response->setRequestFinishedCallback(
+      [response, handler = std::move(completionHandler)](IResponse*) {
+         const std::string responseData = response->readAll<std::string>();
+
+         wxLogDebug(responseData.c_str());
+         if (handler)
+            handler(response->getHTTPCode(), responseData);
+      });
+
+   if (block)
+      while (!response->isFinished()) 
+         {std::this_thread::sleep_for (std::chrono::milliseconds(1));}
+
+
+   std::cout<<"success"<<std::endl;
+   return;
 }
