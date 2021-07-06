@@ -43,12 +43,16 @@ public:
    ModelCard();
    // initialize from a JSON string
    ModelCard(const std::string &JSONstr);
+
+   // make a copy of the internal JSON document
+   ModelCard DeepCopy() const;
+
    // initialize from a JSON file
    static ModelCard CreateFromFile(const std::string &path);
 
    // validate the model card with a given schema
-   bool IsValid(const rapidjson::Document &schema); // doesn't throw
-   void Validate(const rapidjson::Document &schema); // throws 
+   bool IsValid(const rapidjson::Document &schema) const; // doesn't throw
+   void Validate(const rapidjson::Document &schema) const; // throws 
    
    // alternative constructor (from file)
    static ModelCard InitFromFile(const std::string &path);
@@ -58,13 +62,13 @@ public:
    // if the key does not exist, returns "None"
    // useful for when we want to display certain 
    // metadata fields to the user, even if the doc is empty.
-   std::string QueryAsString(const char *key);
+   std::string QueryAsString(const char *key) const;
 
    // returns the labels associated with the model. 
-   std::vector<std::string> GetLabels();
+   std::vector<std::string> GetLabels() const;
 
-   // get a copy of the JSON document object. 
-   std::shared_ptr<rapidjson::Document> GetDoc();
+   // get a view of the JSON document object. 
+   std::shared_ptr<const rapidjson::Document> GetDoc() const;
 
    // may throw if doesn't exist
    // use this to access metadata values
@@ -82,17 +86,19 @@ class ModelCardCollection
 {
 public:
    // set the JSON schema to be used when Validate() is called. 
-   ModelCardCollection(std::shared_ptr<rapidjson::Document> schema);
+   ModelCardCollection(ModelCard schema);
 
    // insert a model card into the collection if it matches the schema
-   bool Insert(ModelCard &card);
+   // will throw if the card does not match the schema
+   // @execsafety strong
+   void Insert(ModelCard &card);
 
    // returns an empty copy, but with the appropriate schema
    ModelCardCollection EmptyCopy();
-   // returns a copy of a subset as dictated by the filter
+   // returns a view of a subset as dictated by the filter
    ModelCardCollection Filter(ModelCardFilter filter);
 
-   // use this to grab the subset which satisfies a new schema;
+   // use this to grab a view of the subset which satisfies a new schema;
    ModelCardCollection FilterBySchema(std::shared_ptr<rapidjson::Document> schema);
 
    // returns an iterator to the cards
@@ -102,6 +108,6 @@ public:
 
 private:
    std::vector<ModelCard> mCards;
-   std::shared_ptr<rapidjson::Document> mSchema;
+   ModelCard mSchema;
 
 };

@@ -16,7 +16,7 @@
 #include "Request.h"
 
 DeepModelManager::DeepModelManager() : mSchema(ModelCard::CreateFromFile(kSchemaPath)),
-                                       mCards(ModelCardCollection(mSchema.GetDoc()))
+                                       mCards(ModelCardCollection(mSchema))
 {
 
 }
@@ -54,6 +54,8 @@ FilePath DeepModelManager::GetRepoDir(const ModelCard &card)
    // TODO: do we really want these fields in the JSON file?
    // or should they be members of the ModelCard class? 
    wxFileName repoDir = DLModelsDir();
+   wxASSERT(card.GetDoc()->HasMember("repo_user"));
+   wxASSERT(card.GetDoc()->HasMember("repo_name"));
    repoDir.AppendDir(card["repo_user"].GetString());
    repoDir.AppendDir(card["repo_name"].GetString());
    return repoDir.GetFullPath();
@@ -66,6 +68,7 @@ std::unique_ptr<DeepModel> DeepModelManager::GetModel(ModelCard &card)
 
    // TODO: raise exception if 
    // TODO: only do if model is loaded, else return  an empty model
+   // GetRepoDir won't work if the card is empty
    wxFileName path = wxFileName(GetRepoDir(card), "model.pt");
 
    // finally, load
@@ -90,10 +93,16 @@ void DeepModelManager::FetchCards()
       // fetch card and insert into mCards if not already there. 
       ModelCard card = mHFWrapper.GetCard(repoId);
 
-      if (!mCards.Insert(card))
-         // TODO: if card is not accepted, log the card and validator output
-         // maybe insert should throw so we can log the trace
-         true;
+      try
+      {
+         mCards.Insert(card);
+      }
+      catch (const std::exception& e)
+      {
+         // TODO: do we even let the user know that
+         // the card didn't validate?  
+         wxLogDebug(e.what());
+      }
    }
 
    // TODO: load from the installed repos as well
@@ -127,7 +136,7 @@ RepoIDList HuggingFaceWrapper::FetchRepos()
    {
       // TODO: http code handling
       ModelCard reposCard = ModelCard(body);
-      std::shared_ptr<rapidjson::Document> reposDoc = reposCard.GetDoc();
+      std::shared_ptr<const rapidjson::Document> reposDoc = reposCard.GetDoc();
 
       for (rapidjson::Value::ConstValueIterator itr = reposDoc->Begin();
                                                 itr != reposDoc->End();
@@ -197,6 +206,9 @@ void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHand
 
    Request request(url);
 
+   if (block)
+      request.setBlocking(true);
+
    NetworkManager& manager = NetworkManager::GetInstance();
    ResponsePtr response = manager.doGet(request);
 
@@ -213,11 +225,6 @@ void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHand
          if (handler)
             handler(response->getHTTPCode(), responseData);
       });
-
-   if (block)
-      while (!response->isFinished()) 
-         {std::this_thread::sleep_for (std::chrono::milliseconds(1));}
-
 
    std::cout<<"success"<<std::endl;
    return;

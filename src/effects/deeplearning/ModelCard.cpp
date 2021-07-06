@@ -18,6 +18,11 @@
 #include "rapidjson/error/en.h"
 
 // ModelCard Implementation
+ModelCard::ModelCard(std::shared_ptr<rapidjson::Document> doc) 
+                                                   : mDoc(doc) 
+{
+
+}
 
 ModelCard::ModelCard()
 {
@@ -27,12 +32,22 @@ ModelCard::ModelCard()
    (*this) = ModelCard(doc);
 }
 
-ModelCard::ModelCard(std::shared_ptr<rapidjson::Document> doc) : mDoc(doc) { }
-
 ModelCard::ModelCard(const std::string &JSONstr)
 {
    std::shared_ptr<rapidjson::Document> doc = std::make_shared<rapidjson::Document>(FromString(JSONstr));
    *this = ModelCard(doc);
+}
+
+ModelCard ModelCard::DeepCopy() const
+{
+   rapidjson::Document::AllocatorType& allocator = mDoc->GetAllocator();
+
+   std::shared_ptr<rapidjson::Document> copy = std::make_shared<rapidjson::Document>();
+   copy->CopyFrom(*mDoc, allocator);
+
+   ModelCard that = ModelCard(copy);
+
+   return that;
 }
 
 ModelCard ModelCard::CreateFromFile(const std::string &path)
@@ -41,7 +56,7 @@ ModelCard ModelCard::CreateFromFile(const std::string &path)
    return ModelCard(doc);
 }
 
-bool ModelCard::IsValid(const rapidjson::Document &schema)
+bool ModelCard::IsValid(const rapidjson::Document &schema) const
 {
    rapidjson::SchemaDocument schemaDoc(schema);
    rapidjson::SchemaValidator validator(schemaDoc);
@@ -49,7 +64,7 @@ bool ModelCard::IsValid(const rapidjson::Document &schema)
    return (!mDoc->Accept(validator));
 }
 
-void ModelCard::Validate(const rapidjson::Document &schema)
+void ModelCard::Validate(const rapidjson::Document &schema) const
 {
    rapidjson::SchemaDocument schemaDoc(schema);
    rapidjson::SchemaValidator validator(schemaDoc);
@@ -108,7 +123,7 @@ rapidjson::Document ModelCard::FromString(const std::string &data)
    return d;
 }
 
-std::string ModelCard::QueryAsString(const char *key)
+std::string ModelCard::QueryAsString(const char *key) const
 {
    std::string output;
    // get the value as a string type
@@ -127,7 +142,7 @@ std::string ModelCard::QueryAsString(const char *key)
    return std::string(output);
 }
 
-std::vector<std::string> ModelCard::GetLabels()
+std::vector<std::string> ModelCard::GetLabels() const
 {
    // iterate through the labels and collect
    std::vector<std::string> labels;
@@ -141,12 +156,13 @@ std::vector<std::string> ModelCard::GetLabels()
    return labels;
 }
 
-std::shared_ptr<rapidjson::Document> ModelCard::GetDoc()
+std::shared_ptr<const rapidjson::Document> ModelCard::GetDoc() const
 {
-   return mDoc;
+   return std::const_pointer_cast<const rapidjson::Document>(mDoc);
 }
 
-rapidjson::Value& ModelCard::operator[](const char *name) const{ 
+rapidjson::Value& ModelCard::operator[](const char *name) const
+{ 
    // wxASSERT(mDoc->HasMember(name); // TODO: what kind of exception do I want to raise here
    if (!mDoc->HasMember(name))
       throw ModelException("Invalid Model Card field: " + std::string(name));
@@ -155,20 +171,15 @@ rapidjson::Value& ModelCard::operator[](const char *name) const{
 
 // ModelCardCollection implementation
 
-ModelCardCollection::ModelCardCollection(std::shared_ptr<rapidjson::Document> schema)
+ModelCardCollection::ModelCardCollection(ModelCard schema)
 {
    mSchema = schema;
 }
 
-bool ModelCardCollection::Insert(ModelCard &card)
+void ModelCardCollection::Insert(ModelCard &card)
 {
-   bool result = true;
-   if (card.IsValid(*mSchema))
-      mCards.push_back(card);
-   else
-      result = false;
-
-   return result;
+   card.Validate(*(mSchema.GetDoc()));
+   mCards.push_back(card);
 }
 
 ModelCardCollection ModelCardCollection::Filter(ModelCardFilter filter)
