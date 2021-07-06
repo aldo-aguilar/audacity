@@ -72,7 +72,7 @@ wxString EffectSourceSep::ManualPage()
 
 EffectType EffectSourceSep::GetType()
 {
-   return EffectTypeProcess;
+   return EffectTypeTool;
 }
 
 // EffectClientInterface implementation
