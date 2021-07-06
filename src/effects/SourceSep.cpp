@@ -28,7 +28,7 @@
 
 // EffectDeepLearning implementation
 
-std::string EffectSourceSep::GetEffectID()
+std::string EffectSourceSep::GetDeepEffectID()
 { return "source-separation";}
 
 const ComponentInterfaceSymbol EffectSourceSep::Symbol

@@ -40,7 +40,7 @@ public:
 
    // EffectDeepLearning implementation
 
-   std::string GetEffectID() override;
+   std::string GetDeepEffectID() override;
 
    // ComponentInterface implementation
 
