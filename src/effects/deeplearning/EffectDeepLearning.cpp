@@ -19,10 +19,10 @@ EffectDeepLearning::EffectDeepLearning()
 
 bool EffectDeepLearning::Init()
 {
-   // DeepModelManager &manager = DeepModelManager::Get();
-   // std::string effectid = GetDeepEffectID(); //TODO: maybe we want an enum for the effect id?
-   // mCard = manager.GetCached(effectid);
-   // mModel = manager.GetModel(mCard);
+   DeepModelManager &manager = DeepModelManager::Get();
+   std::string effectid = GetDeepEffectID(); //TODO: maybe we want an enum for the effect id?
+   mCard = manager.GetCached(effectid);
+   mModel = manager.GetModel(mCard);
 
    // TODO: except handling
    mModel = std::make_unique<DeepModel>();

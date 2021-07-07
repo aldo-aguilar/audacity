@@ -79,9 +79,9 @@ class DeepModelManager
 
    FilePath GetRepoDir(const ModelCard &card);
 
-   void FetchCards();
 
 public:
+   void FetchCards(ProgressDialog *progress = NULL);
 
    static DeepModelManager& Get();
    static void Shutdown();

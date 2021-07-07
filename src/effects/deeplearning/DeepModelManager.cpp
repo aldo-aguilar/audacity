@@ -34,8 +34,14 @@ DeepModelManager& DeepModelManager::Get()
    manager.FetchCards();
 
    for (auto card: manager.mCards)
-   {
-      std::cout<<card.GetDoc()->GetString()<<std::endl;
+   {  
+      rapidjson::StringBuffer sBuffer;
+      rapidjson::Writer<rapidjson::StringBuffer> writer(sBuffer);
+
+      (*card.GetDoc()).Accept(writer);
+      std::string output = sBuffer.GetString();
+
+      std::cout<<output<<std::endl;
    }
    // NOTE: DEBUG
 
@@ -83,15 +89,25 @@ ModelCard DeepModelManager::GetCached(std::string &effectID)
    return ModelCard();
 }
 
-void DeepModelManager::FetchCards()
+void DeepModelManager::FetchCards(ProgressDialog *progress)
 {
+   if (progress)
+      progress->SetMessage(XO("Fetching Model Repos..."));
+
    RepoIDList repos = mHFWrapper.FetchRepos();
 
    //TODO: exception handling 
-   for (std::string repoId : repos)
+   int total = repos.size();
+   for (int idx = 0;  idx < repos.size() ; idx++)
    {
+      std::string repoId = repos[idx];
+
       // fetch card and insert into mCards if not already there. 
       ModelCard card = mHFWrapper.GetCard(repoId);
+
+      if (progress)
+            progress->Update(idx, total, 
+                           (XO("Fetching Model &%s").Format(repoId)));
 
       try
       {
@@ -101,6 +117,8 @@ void DeepModelManager::FetchCards()
       {
          // TODO: do we even let the user know that
          // the card didn't validate?  
+         wxLogDebug(wxString("Failed to validate metadata.json for repo %s")
+                                                            .Format(wxString(repoId)));
          wxLogDebug(e.what());
       }
    }
@@ -116,7 +134,7 @@ void DeepModelManager::FetchCards()
 std::string HuggingFaceWrapper::GetRootURL(const std::string &repoID)
 {
    std::stringstream url;
-   url<<"https://huggingface.co/models/"<<repoID<<"/resolve/main/";
+   url<<"https://huggingface.co/"<<repoID<<"/resolve/main/";
    return url.str();
 }
 
@@ -146,14 +164,14 @@ RepoIDList HuggingFaceWrapper::FetchRepos()
          repos.emplace_back(itr->GetObject()["modelId"].GetString());
    };
 
-   doGet(query, handler, /*block=*/true);
+   doGet(query, handler, true);
 
    return repos;
 }
 
 ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
 { 
-   std::string modelCardUrl = GetRootURL(repoID) + "/metadata.json";
+   std::string modelCardUrl = GetRootURL(repoID) + "metadata.json";
    ModelCard card = ModelCard();
    // TODO: how do you handle an exception inside a thread, like this one? 
    CompletionHandler completionHandler = [&card](int httpCode, std::string body)
@@ -170,7 +188,7 @@ ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
       }
    };
 
-   doGet(modelCardUrl, completionHandler/*, null */);
+   doGet(modelCardUrl, completionHandler, true);
    
    return card;
 }
