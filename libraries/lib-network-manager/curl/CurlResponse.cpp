@@ -197,8 +197,6 @@ void CurlResponse::setRequestFinishedCallback (RequestCallback callback)
 
     mRequestFinishedCallback = std::move (callback);
 
-    std::lock_guard<std::mutex> statusLock (mStatusMutex);
-
     if (mRequestFinishedCallback && mRequestFinished)
         mRequestFinishedCallback (this);
 }
