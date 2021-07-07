@@ -163,9 +163,7 @@ std::shared_ptr<const rapidjson::Document> ModelCard::GetDoc() const
 
 rapidjson::Value& ModelCard::operator[](const char *name) const
 { 
-   // wxASSERT(mDoc->HasMember(name); // TODO: what kind of exception do I want to raise here
-   if (!mDoc->HasMember(name))
-      throw ModelException("Invalid Model Card field: " + std::string(name));
+   wxASSERT_MSG(mDoc->HasMember(name), wxString("Document missing %s field").Format(name));
    return mDoc->operator[](name);
 };
 
