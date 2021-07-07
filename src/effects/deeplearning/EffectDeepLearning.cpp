@@ -20,6 +20,11 @@ EffectDeepLearning::EffectDeepLearning()
 bool EffectDeepLearning::Init()
 {
    DeepModelManager &manager = DeepModelManager::Get();
+
+   std::unique_ptr<ProgressDialog> progress =  std::make_unique<ProgressDialog>(XO("Loading Model Manager..."));
+
+   manager.FetchCards(progress.get());
+
    std::string effectid = GetDeepEffectID(); //TODO: maybe we want an enum for the effect id?
    mCard = manager.GetCached(effectid);
    mModel = manager.GetModel(mCard);

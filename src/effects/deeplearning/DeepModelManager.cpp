@@ -30,21 +30,6 @@ DeepModelManager& DeepModelManager::Get()
 {
    static DeepModelManager manager;
 
-   // NOTE: DEBUG
-   manager.FetchCards();
-
-   for (auto card: manager.mCards)
-   {  
-      rapidjson::StringBuffer sBuffer;
-      rapidjson::Writer<rapidjson::StringBuffer> writer(sBuffer);
-
-      (*card.GetDoc()).Accept(writer);
-      std::string output = sBuffer.GetString();
-
-      std::cout<<output<<std::endl;
-   }
-   // NOTE: DEBUG
-
    return manager;
 }
 
@@ -107,7 +92,7 @@ void DeepModelManager::FetchCards(ProgressDialog *progress)
 
       if (progress)
             progress->Update(idx, total, 
-                           (XO("Fetching Model &%s").Format(repoId)));
+                           (XO("Fetching &%s...").Format(repoId)));
 
       try
       {
@@ -239,11 +224,9 @@ void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHand
       [response, handler = std::move(completionHandler)](IResponse*) {
          const std::string responseData = response->readAll<std::string>();
 
-         wxLogDebug(responseData.c_str());
          if (handler)
             handler(response->getHTTPCode(), responseData);
       });
 
-   std::cout<<"success"<<std::endl;
    return;
 }
