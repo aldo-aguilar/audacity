@@ -28,13 +28,25 @@
 // BlockIndex.second corresponds to the length of the block
 using BlockIndex = std::pair<sampleCount, size_t>;
 
+class ShuttleGui;
+class ModelCardPanel;
+
 class EffectDeepLearning /* not final */ : public Effect
 {
 public:
    EffectDeepLearning();
 
    // Effect implementation
+
+   // bool Startup() override;
+   bool Init() override;
+   void End() override;
    bool Process() override;
+   void PopulateOrExchange(ShuttleGui & S) override;
+   // bool TransferDataToWindow() override;
+   // bool TransferDataFromWindow() override;
+
+   // DeepLearningEffect implementation
 
    // TODO: write desc and instructions
    virtual bool ProcessOne(WaveTrack * track, double tStart, double tEnd) = 0;
@@ -42,9 +54,6 @@ public:
 protected:
    // TODO: write instructions
    virtual std::string GetDeepEffectID() = 0;
-
-   bool Init() override;
-   void End() override;
 
    // the deep model itself
    std::unique_ptr<DeepModel> mModel;
@@ -79,7 +88,48 @@ protected:
    int mCurrentTrackNum;
 
 private:
+   // handlers
+   void OnLoadButton(wxCommandEvent &event);
+
+private:
    ModelCard mCard;
+
+   ModelCardPanel *mCardPanel;
+
+   // DECLARE_EVENT_TABLE()
 };
+
+class ModelCardPanel final : public wxPanelWrapper
+{
+public:
+   ModelCardPanel(wxWindow *parent, wxWindowID winid, ModelCard card);
+
+   void PopulateOrExchange(ShuttleGui &S);
+
+private:
+   // handlers
+   void OnInstall(wxCommandEvent &event);
+
+   void PopulateNameAndAuthor(ShuttleGui &S);
+   void PopulateDescription(ShuttleGui &S);
+   void PopulateMetadata(ShuttleGui &S);
+   void PopulateInstallCtrls(ShuttleGui &S);
+
+private:
+   wxWindow *mParent;
+
+   wxStaticText *mModelName;
+   wxStaticText *mModelAuthor;
+   wxStaticText *mModelDescription;
+
+   wxButton *mInstallButton;
+   wxStaticText *mInstallStatusText;
+   wxGauge *mInstallProgressGauge;
+
+   ModelCard mCard;
+
+   DECLARE_EVENT_TABLE()
+};
+
 
 #endif
