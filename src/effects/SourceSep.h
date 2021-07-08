@@ -62,15 +62,12 @@ public:
    // Effect implementation
    bool ProcessOne(WaveTrack * track, double tStart, double tEnd) override;
 
-   void PopulateOrExchange(ShuttleGui &S) override;
-   void PopulateMetadata(ShuttleGui &S);
-   void AddMetadataEntry(ShuttleGui &S, std::string desc, std::string key);
    // bool TransferDataToWindow() override;
    // bool TransferDataFromWindow() override;
 
 private:
    // handlers
-   void OnLoadButton(wxCommandEvent &event);
+   // void OnLoadButton(wxCommandEvent &event);
 
    std::vector<WaveTrack::Holder> CreateSourceTracks(WaveTrack *track, 
                                              std::vector<std::string> &labels);
@@ -79,13 +76,12 @@ private:
 
 private:
 
-   wxButton *mLoadModelBtn;
-   wxStaticText *mDescription;
+   // wxButton *mLoadModelBtn;
+   // wxStaticText *mDescription;
 
-   std::map<std::string, wxStaticText*> mMetadataFields;
-   void UpdateMetadataFields();
+   // std::map<std::string, wxStaticText*> mMetadataFields;
+   // void UpdateMetadataFields();
 
-   DECLARE_EVENT_TABLE()
 };
 
 #endif

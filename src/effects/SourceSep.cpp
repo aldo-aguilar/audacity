@@ -37,11 +37,6 @@ const ComponentInterfaceSymbol EffectSourceSep::Symbol
 // register source separation
 namespace{ BuiltinEffectsModule::Registration< EffectSourceSep > reg; }
 
-// register event handlers
-BEGIN_EVENT_TABLE(EffectSourceSep, wxEvtHandler)
-   EVT_BUTTON(wxID_ANY, EffectSourceSep::OnLoadButton)
-END_EVENT_TABLE()
-
 EffectSourceSep::EffectSourceSep()
 {
    SetLinearEffectFlag(false);
@@ -174,113 +169,88 @@ void EffectSourceSep::PostProcessSources
 }
 
 // UI stuff
-void EffectSourceSep::PopulateOrExchange(ShuttleGui &S)
-{
-   S.StartVerticalLay(wxCENTER, true);
-   {
 
-      PopulateMetadata(S);
+// void EffectSourceSep::AddMetadataEntry(ShuttleGui &S, std::string desc,
+//                                        std::string key)
+// {
+//    S.StartHorizontalLay(wxLEFT, false); 
+//    { 
+//       wxStaticText *descText = S.AddVariableText(
+//          TranslatableString(wxString(desc).c_str(), {})); 
 
-      S.StartHorizontalLay(wxCENTER, false);
-      {
-         mLoadModelBtn = S.AddButton(XXO("&Import Model..."));
-
-         std::string modelDesc;
-         if (mModel->IsLoaded()) 
-            modelDesc = "Ready";
-         else 
-            modelDesc = "Not Ready";
-
-         mDescription = S.AddVariableText(
-            TranslatableString(wxString(modelDesc).c_str(), {}));
-      }
-      S.EndHorizontalLay();
-   }
-   S.EndVerticalLay();
-
-}
-
-void EffectSourceSep::AddMetadataEntry(ShuttleGui &S, std::string desc,
-                                       std::string key)
-{
-   S.StartHorizontalLay(wxLEFT, false); 
-   { 
-      wxStaticText *descText = S.AddVariableText(
-         TranslatableString(wxString(desc).c_str(), {})); 
-
-      wxFont font = descText->GetFont(); 
-      font = font.MakeBold(); 
-      descText->SetFont(font); 
+//       wxFont font = descText->GetFont(); 
+//       font = font.MakeBold(); 
+//       descText->SetFont(font); 
    
-      std::string value = mModel->GetCard().QueryAsString(key.c_str()); 
-      wxStaticText *text =  S.AddVariableText( 
-         TranslatableString(wxString(value).c_str(), {})); 
+//       std::string value = mModel->GetCard().QueryAsString(key.c_str()); 
+//       wxStaticText *text =  S.AddVariableText( 
+//          TranslatableString(wxString(value).c_str(), {})); 
 
-      mMetadataFields[key] = text; 
-   } 
-   S.EndHorizontalLay(); 
-}
+//       mMetadataFields[key] = text; 
+//    } 
+//    S.EndHorizontalLay(); 
+// }
 
-void EffectSourceSep::PopulateMetadata(ShuttleGui &S)
-{
-   // TODO: this does not take into account the possible
-   // depth of the metadata.
-   S.StartVerticalLay(wxCENTER, false);
-   {
-      //TODO: bold not working, nicer table style
-      AddMetadataEntry(S, "Model Name:", "name");
-      AddMetadataEntry(S, "Separation Sample Rate:", "sample_rate");
-      AddMetadataEntry(S, "Domain:", "domain");
-      AddMetadataEntry(S, "Output Sources:", "labels");
-   }
-   S.EndVerticalLay();
-}
+// void EffectSourceSep::PopulateMetadata(ShuttleGui &S)
+// {
+//    // TODO: this does not take into account the possible
+//    // depth of the metadata.
+//    S.StartVerticalLay(wxCENTER, false);
+//    {
+//       //TODO: bold not working, nicer table style
+//       AddMetadataEntry(S, "Model Name:", "name");
+//       AddMetadataEntry(S, "Separation Sample Rate:", "sample_rate");
+//       AddMetadataEntry(S, "Domain:", "domain");
+//       AddMetadataEntry(S, "Output Sources:", "labels");
+//    }
+//    S.EndVerticalLay();
+// }
 
-void EffectSourceSep::UpdateMetadataFields(){
-   for (auto pair : mMetadataFields){
-      std::string key = pair.first;
-      wxStaticText *field = pair.second;
+// void EffectSourceSep::UpdateMetadataFields(){
+//    for (auto pair : mMetadataFields){
+//       std::string key = pair.first;
+//       wxStaticText *field = pair.second;
 
-      std::string value = mModel->GetCard().QueryAsString(key.c_str());
-      field->SetLabel(wxString(value));
-      field->SetName(wxString(value));
-   }
-}
+//       std::string value = mModel->GetCard().QueryAsString(key.c_str());
+//       field->SetLabel(wxString(value));
+//       field->SetName(wxString(value));
+//    }
+// }
 
-void EffectSourceSep::OnLoadButton(wxCommandEvent &WXUNUSED(event))
-{
-   auto path = FileNames::SelectFile(FileNames::Operation::Import,
-                                     XO("Load Source Separation Model"),
-                                     wxEmptyString,
-                                     wxEmptyString, 
-                                     wxT("pt"),
-                                    { FileNames::FileType(
-                                       XO("TorchScript"), 
-                                       {wxT("pt")}, true
-                                    )},
-                                     wxFD_OPEN | wxRESIZE_BORDER,
-                                     nullptr);
+// void EffectSourceSep::OnLoadButton(wxCommandEvent &WXUNUSED(event))
+// {
+//    auto path = FileNames::SelectFile(FileNames::Operation::Import,
+//                                      XO("Load Source Separation Model"),
+//                                      wxEmptyString,
+//                                      wxEmptyString, 
+//                                      wxT("pt"),
+//                                     { FileNames::FileType(
+//                                        XO("TorchScript"), 
+//                                        {wxT("pt")}, true
+//                                     )},
+//                                      wxFD_OPEN | wxRESIZE_BORDER,
+//                                      nullptr);
 
-   if (path.empty()) return;
+//    if (path.empty()) return;
 
-   // attempt load deep learning model
-   // TODO: what's the fallback when the model doesn't load? 
-   wxString descStr;
-   try 
-   {
-      mModel->Load(path.ToStdString()); 
-      descStr = wxString("Ready");
-   }
-   catch(const std::exception& e)
-   {
-      Effect::MessageBox(XO("An error occured while loading the model."), 
-                        wxOK | wxICON_ERROR
-      );
-      descStr = wxString("Not Ready");
-   }
+//    // attempt load deep learning model
+//    // TODO: what's the fallback when the model doesn't load? 
+//    wxString descStr;
+//    try 
+//    {
+//       mModel->Load(path.ToStdString()); 
+//       descStr = wxString("Ready");
+//    }
+//    catch(const std::exception& e)
+//    {
+//       Effect::MessageBox(XO("An error occured while loading the model."), 
+//                         wxOK | wxICON_ERROR
+//       );
+//       descStr = wxString("Not Ready");
+//    }
 
-   mDescription->SetLabel(descStr);
-   mDescription->SetName(descStr);
+//    mDescription->SetLabel(descStr);
+//    mDescription->SetName(descStr);
 
-   UpdateMetadataFields();
-}
+//    UpdateMetadataFields();
+// }

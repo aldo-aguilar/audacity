@@ -15,6 +15,8 @@
 #include "IResponse.h"
 #include "Request.h"
 
+#include <wx/tokenzr.h>
+
 DeepModelManager::DeepModelManager() : mSchema(ModelCard::CreateFromFile(kSchemaPath)),
                                        mCards(ModelCardCollection(mSchema))
 {
@@ -45,10 +47,16 @@ FilePath DeepModelManager::GetRepoDir(const ModelCard &card)
    // TODO: do we really want these fields in the JSON file?
    // or should they be members of the ModelCard class? 
    wxFileName repoDir = DLModelsDir();
-   wxASSERT(card.GetDoc()->HasMember("repo_user"));
-   wxASSERT(card.GetDoc()->HasMember("repo_name"));
-   repoDir.AppendDir(card["repo_user"].GetString());
-   repoDir.AppendDir(card["repo_name"].GetString());
+   
+   wxASSERT(card.GetDoc()->HasMember("author"));
+   wxASSERT(card.GetDoc()->HasMember("name"));
+
+   std::cout<<card["author"].GetString()<<std::endl;
+   std::cout<<card["name"].GetString()<<std::endl;
+
+   repoDir.AppendDir(card["author"].GetString());
+   repoDir.AppendDir(card["name"].GetString());
+
    return repoDir.GetFullPath();
 }
 
@@ -114,6 +122,30 @@ void DeepModelManager::FetchCards(ProgressDialog *progress)
    // already had it installed? 
 }
 
+bool DeepModelManager::IsInstalled(ModelCard &card)
+{
+   FilePath repoDir = GetRepoDir(card);
+
+   wxFileName modelPath = wxFileName(repoDir, "model.pt");
+   wxFileName metadataPath = wxFileName(repoDir, "metadata.json");
+
+   return (modelPath.FileExists() && metadataPath.FileExists());
+}
+
+bool DeepModelManager::Install(ModelCard &card)
+{ 
+   if (IsInstalled(card))
+      return true;
+
+   return true;
+}
+
+void DeepModelManager::Uninstall(ModelCard &card)
+{
+   if (!IsInstalled(card))
+      return;
+}
+
 // HuggingFaceWrapper Implementation
 
 std::string HuggingFaceWrapper::GetRootURL(const std::string &repoID)
@@ -149,7 +181,7 @@ RepoIDList HuggingFaceWrapper::FetchRepos()
          repos.emplace_back(itr->GetObject()["modelId"].GetString());
    };
 
-   doGet(query, handler, true);
+   doGet(query, handler);
 
    return repos;
 }
@@ -159,7 +191,7 @@ ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
    std::string modelCardUrl = GetRootURL(repoID) + "metadata.json";
    ModelCard card = ModelCard();
    // TODO: how do you handle an exception inside a thread, like this one? 
-   CompletionHandler completionHandler = [&card](int httpCode, std::string body)
+   CompletionHandler completionHandler = [repoID, &card](int httpCode, std::string body)
    { 
       if (!(httpCode == 200))
       {
@@ -168,12 +200,27 @@ ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
          throw ModelManagerException(msg.str());
       }
       else
-      { 
+      {
          card = ModelCard(body);
+
+         // std::cout<<body<<std::endl;
+
+         // wxStringTokenizer st(wxString(repoID), wxT("/"));
+         // std::string sAuthor = st.GetNextToken().ToStdString();
+         // std::string sName = st.GetNextToken().ToStdString();
+         // std::cout<<sName<<std::endl;
+
+         // auto doc = rapidjson::Document();
+         // rapidjson::Value author; author.SetString(sAuthor.c_str(), sAuthor.size(), doc.GetAllocator());
+         // card.Set(rapidjson::Value().SetString("repo_user"), author);
+         
+         // rapidjson::Value name; name.SetString(sName.c_str(), sName.size(), doc.GetAllocator());
+         // card.Set(rapidjson::Value().SetString("repo_name"), name);
+         
       }
    };
 
-   doGet(modelCardUrl, completionHandler, true);
+   doGet(modelCardUrl, completionHandler);
    
    return card;
 }
@@ -182,7 +229,7 @@ void HuggingFaceWrapper::DownloadModel(const ModelCard &card, const std::string 
 {
    std::string modelUrl = GetRootURL(card["repo_id"].GetString()) + "/model.pt";
 
-   CompletionHandler completionHandler = [&card, &path](int httpCode, std::string body)
+   CompletionHandler completionHandler = [&card, path](int httpCode, std::string body)
    {
       if (!(httpCode == 200))
       {
@@ -203,14 +250,14 @@ void HuggingFaceWrapper::DownloadModel(const ModelCard &card, const std::string 
    };
 }
 
-void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHandler, bool block /*, ProgressCallback progress */)
+void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHandler)
 {
    using namespace audacity::network_manager;
 
    Request request(url);
 
-   if (block)
-      request.setBlocking(true);
+   // delete me once we fix the blocking issue
+   request.setBlocking(true);
 
    NetworkManager& manager = NetworkManager::GetInstance();
    ResponsePtr response = manager.doGet(request);

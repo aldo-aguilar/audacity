@@ -47,7 +47,7 @@ class HuggingFaceWrapper
 {
    std::string GetRootURL(const std::string &repoID);
 
-   void doGet(std::string url, CompletionHandler completionHandler, bool block = false/*, ProgressCallback progress*/);
+   void doGet(std::string url, CompletionHandler completionHandler);
 
 public:
    HuggingFaceWrapper();
@@ -97,8 +97,11 @@ public:
    ModelCard GetCached(std::string &effectID);
 
    // download and install a deep learning model
+   bool IsInstalled(ModelCard &card);
    bool Install(ModelCard &card);
    void Uninstall(ModelCard &card);
+
+   ModelCardCollection GetCards() { return mCards; }
 
 private:
    ModelCard mSchema;

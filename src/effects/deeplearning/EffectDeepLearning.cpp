@@ -241,88 +241,8 @@ void EffectDeepLearning::PopulateOrExchange(ShuttleGui &S)
 
          for (auto &card : manager.GetCards())
          { 
-            // the layout is actually 2 columns, 
-            // but we add a small space in the middle, which takes up a column
-            S.StartStatic(XO(""), 1);
-            S.StartMultiColumn(3, wxEXPAND);
-            {
-               // left column: 
-               // repo name, repo author, and model description
-               S.SetStretchyCol(0);
-               S.StartVerticalLay(wxALIGN_LEFT, true);
-               {
-                  // {repo-name}
-                  S.AddVariableText(XO("%s")
-                                    .Format(card["name"].GetString()),
-                                     false, wxLEFT)
-                                    ->SetFont(wxFont(wxFontInfo().Bold()));
-                  
-                  // by {author}
-                  S.StartHorizontalLay(wxALIGN_LEFT, true);
-                  {
-                     S.AddVariableText(XO("by"));
-                     S.AddVariableText(XO("%s")
-                                       .Format(card["author"].GetString()))
-                                       ->SetFont(wxFont(wxFontInfo().Bold()));
-                  }
-                  S.EndHorizontalLay();
-
-                  // model description
-                  {
-                  S.StartStatic(XO("Description"));
-                  S.AddVariableText(XO("%s")
-                                 .Format(wxString(card["description"].GetString())), 
-                                 false, wxLEFT);
-                  S.EndStatic();
-                  }
-
-               }
-               S.EndVerticalLay();
-
-               // dead space (center column)
-               S.AddSpace(5, 0);
-
-               S.StartMultiColumn(1);
-               {
-                  // top: other model metadata
-                  S.StartVerticalLay(wxALIGN_TOP, false);
-                  {
-                     S.StartMultiColumn(2, wxCENTER);
-                     {
-                        S.AddVariableText(XO("Effect: "))
-                                          ->SetFont(wxFont(wxFontInfo().Bold()));
-                        S.AddVariableText(XO("%s")
-                                          .Format(card["effect"].GetString()));
-                     }
-                     S.EndMultiColumn();
-                  }
-                  S.EndVerticalLay();
-
-                  // bottom: install and uninstall controls
-                  S.StartVerticalLay(wxALIGN_BOTTOM, false);
-                  {
-                     // top part: install gauge bar (hidden)
-                     // wxGauge()
-                     
-                     // install status + install bottom
-                     S.StartHorizontalLay(wxALIGN_RIGHT);
-                     {
-                        S.AddVariableText(XO("%s").Format( 
-                                                   manager.IsInstalled(card) ? "installed" 
-                                                                              : "uninstalled"));
-
-                        S.AddButton(XXO("&Install"));
-                     }
-                     S.EndHorizontalLay();
-
-                  }
-                  S.EndVerticalLay();
-
-               }
-               S.EndVerticalLay();
-            }
-            S.EndMultiColumn();
-            S.EndStatic();
+            auto panel = std::make_unique<ModelCardPanel>(S.GetParent(), wxID_ANY, card);
+            panel->PopulateOrExchange(S);
          }
       }
       S.EndScroller();
@@ -370,6 +290,7 @@ void EffectDeepLearning::PopulateOrExchange(ShuttleGui &S)
 enum {
    ID_INSTALLBUTTON = 10000,
    ID_INSTALLSTATUS,
+   ID_INSTALLPROGRESS,
    ID_MODELDESCRIPTION,
    ID_MODELAUTHOR,
    ID_MODELNAME
@@ -388,8 +309,8 @@ ModelCardPanel::ModelCardPanel(wxWindow *parent, wxWindowID winid, ModelCard car
    mParent = parent;
    mCard = card;
 
-   ShuttleGui S(this, eIsCreating);
-   PopulateOrExchange(S);
+   // ShuttleGui S(this, eIsCreating);
+   // PopulateOrExchange(S);
 }
 
 void ModelCardPanel::PopulateNameAndAuthor(ShuttleGui &S)
@@ -441,17 +362,28 @@ void ModelCardPanel::PopulateInstallCtrls(ShuttleGui &S)
 {
    DeepModelManager &manager = DeepModelManager::Get();
 
-   bool installed = manager.IsInstalled(mCard);
-   std::string status = installed ? "installed" : "uninstalled";
-   mInstallStatusText = S.Id(ID_INSTALLSTATUS)
-                           .AddVariableText(XO("%s").Format(status));
-
-   wxColour statusColor = installed ? *wxGREEN : *wxRED;
-   mInstallStatusText->SetForegroundColour(statusColor);
+   S.StartVerticalLay(wxCENTER, true);
+   {  
+      // add a progress gauge for downloads, but hide it
+      mInstallProgressGauge = safenew wxGauge(S.GetParent(), wxID_ANY, 100);
+      S.Id(ID_INSTALLPROGRESS).AddWindow(mInstallProgressGauge);
+      mInstallProgressGauge->Hide();
                               
+      S.StartHorizontalLay(wxCENTER, true);
+      {
+         bool installed = manager.IsInstalled(mCard);
+         std::string status = installed ? "installed" : "uninstalled";
+         mInstallStatusText = S.Id(ID_INSTALLSTATUS)
+                                 .AddVariableText(XO("%s").Format(status));
 
-   S.Id(ID_INSTALLBUTTON)
-      .AddButton(XXO("&Install"));
+         wxColour statusColor = installed ? *wxGREEN : *wxRED;
+         mInstallStatusText->SetForegroundColour(statusColor);
+
+         S.Id(ID_INSTALLBUTTON)
+            .AddButton(XXO("&Install"));
+      }
+   }
+
 }
 
 void ModelCardPanel::PopulateOrExchange(ShuttleGui &S)
