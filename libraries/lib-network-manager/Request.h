@@ -57,11 +57,15 @@ public:
     Request& setMaxRedirects(size_t redirects) noexcept;
     size_t getMaxRedirects() const noexcept;
 
+    Request& setBlocking(bool block) noexcept;
+    bool getBlocking() const noexcept;
 
     Request& setTimeout(Timeout timeout) noexcept;
     Timeout getTimeout() const noexcept;
 private:
     std::string mUrl;
+
+    bool mBlocking { false };
 
     HeadersList mHeaders;
     CookiesList mCookies;
