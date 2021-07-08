@@ -354,6 +354,16 @@ void ModelCardPanel::PopulateMetadata(ShuttleGui &S)
                         ->SetFont(wxFont(wxFontInfo().Bold()));
       S.AddVariableText(XO("%s")
                         .Format(mCard["effect"].GetString()));
+
+      S.AddVariableText(XO("Domain: "))
+                        ->SetFont(wxFont(wxFontInfo().Bold()));
+      S.AddVariableText(XO("%s")
+                        .Format(mCard["domain"].GetString()));
+      
+      S.AddVariableText(XO("Sample Rate: "))
+                        ->SetFont(wxFont(wxFontInfo().Bold()));
+      S.AddVariableText(XO("%d")
+                        .Format(mCard["sample_rate"].GetInt()));
    }
    S.EndMultiColumn();
 }
@@ -382,8 +392,9 @@ void ModelCardPanel::PopulateInstallCtrls(ShuttleGui &S)
          S.Id(ID_INSTALLBUTTON)
             .AddButton(XXO("&Install"));
       }
+      S.EndHorizontalLay();
    }
-
+   S.EndVerticalLay();
 }
 
 void ModelCardPanel::PopulateOrExchange(ShuttleGui &S)
@@ -421,10 +432,6 @@ void ModelCardPanel::PopulateOrExchange(ShuttleGui &S)
          // bottom: install and uninstall controls
          S.StartVerticalLay(wxALIGN_BOTTOM, false);
          {
-            // top part: install gauge bar (hidden)
-            // wxGauge()
-            
-            // install status + install bottom
             S.StartHorizontalLay(wxALIGN_RIGHT);
             { 
                PopulateInstallCtrls(S);
