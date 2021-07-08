@@ -116,7 +116,7 @@ rapidjson::Document ModelCard::FromString(const std::string &data)
    {
       std::string msg = "error parsing JSON from string: \n";
       msg += rapidjson::GetParseError_En(d.GetParseError());
-      msg += "\n document: \n\t" + std::string(d.GetString()) + "\n";
+      msg += "\n document: \n\t" + std::string(data.c_str()) + "\n";
       throw ModelException(msg);
    }
    
