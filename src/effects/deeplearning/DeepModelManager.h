@@ -33,7 +33,7 @@ TODO: add a more thorough description
 using RepoIDList = std::vector<std::string>;
 using TagList = std::vector<std::string>;
 using CompletionHandler = std::function<void (int httpCode, std::string responseBody)>;
-// using ProgressCallback = audacity::network_manager::ProgressCallback;
+using ProgressCallback = std::function<void(int64_t current, int64_t expected)>;
 
 class ModelManagerException : public std::exception
 {
@@ -46,8 +46,7 @@ public:
 class HuggingFaceWrapper
 {
    std::string GetRootURL(const std::string &repoID);
-
-   void doGet(std::string url, CompletionHandler completionHandler);
+   void doGet(std::string url, CompletionHandler completionHandler, ProgressCallback onProgress=NULL);
 
 public:
    HuggingFaceWrapper();
@@ -65,7 +64,8 @@ public:
    RepoIDList FetchRepos();
 
    // download a model
-   void DownloadModel(const ModelCard &card, const std::string &path);
+   void DownloadModel(const ModelCard &card, const std::string &path,
+                      ProgressCallback onProgress, CompletionHandler onCompleted);
 
 private:
    std::string mAPIEndpoint;
@@ -96,9 +96,13 @@ public:
    // returns the last used model card in the effect
    ModelCard GetCached(std::string &effectID);
 
+   //TODO:
+   bool RegisterLocal(std::string &metadataPath, std::string &modelPath);
+
    // download and install a deep learning model
    bool IsInstalled(ModelCard &card);
-   bool Install(ModelCard &card);
+   bool Install(ModelCard &card, ProgressCallback onProgress, 
+                                 CompletionHandler onCompleted);
    void Uninstall(ModelCard &card);
 
    ModelCardCollection GetCards() { return mCards; }

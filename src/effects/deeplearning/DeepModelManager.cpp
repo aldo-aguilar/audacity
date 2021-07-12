@@ -132,10 +132,28 @@ bool DeepModelManager::IsInstalled(ModelCard &card)
    return (modelPath.FileExists() && metadataPath.FileExists());
 }
 
-bool DeepModelManager::Install(ModelCard &card)
+bool DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, CompletionHandler onCompleted)
 { 
    if (IsInstalled(card))
       return true;
+
+   // download the model
+   try 
+   {
+      mHFWrapper.DownloadModel(card, 
+                              wxFileName(GetRepoDir(card), "model.pt").GetFullPath().ToStdString(), 
+                              onProgress, 
+                              onCompleted);
+
+      // save the metadata
+      // TODO: maybe have methods that return the path to card and path to model?
+      card.Save(wxFileName(GetRepoDir(card), "metadata.json").GetFullPath().ToStdString());
+   }
+   catch (...)
+   {
+      //TODO: handle this
+      return false;
+   }
 
    return true;
 }
@@ -225,11 +243,18 @@ ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
    return card;
 }
 
-void HuggingFaceWrapper::DownloadModel(const ModelCard &card, const std::string &path)
+// TODO: maybe we want ANOTHER completion  callback that gives you something more high level
+void HuggingFaceWrapper::DownloadModel(const ModelCard &card, const std::string &path, 
+                                       ProgressCallback onProgress, CompletionHandler onCompleted)
 {
-   std::string modelUrl = GetRootURL(card["repo_id"].GetString()) + "/model.pt";
+   std::stringstream repoid;
+   // TODO: we NEED to validate "author" and "name" when we fetch the modelcards. 
+   // this should be done internally
+   repoid<<card["author"].GetString()<<"+"<<card["name"].GetString();
+   std::string modelUrl = GetRootURL(repoid.str())  + "/model.pt";
 
-   CompletionHandler completionHandler = [&card, path](int httpCode, std::string body)
+   CompletionHandler completionHandler = [path, onComplete = std::move(onCompleted), 
+                                          &card](int httpCode, std::string body)
    {
       if (!(httpCode == 200))
       {
@@ -246,26 +271,31 @@ void HuggingFaceWrapper::DownloadModel(const ModelCard &card, const std::string 
          tmpModel.SetCard(cardCopy);
          tmpModel.Load(modulestr);
          tmpModel.Save(path);
+
+         onComplete(httpCode, body);
+
       }
    };
+
+   doGet(modelUrl, completionHandler, onProgress);
 }
 
-void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHandler)
+void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHandler, ProgressCallback onProgress)
 {
    using namespace audacity::network_manager;
 
    Request request(url);
 
    // delete me once we fix the blocking issue
-   request.setBlocking(true);
+   if (!onProgress)
+      request.setBlocking(true);
 
    NetworkManager& manager = NetworkManager::GetInstance();
    ResponsePtr response = manager.doGet(request);
 
-#if 0
    // set callback for download progress
-   response->setDownloadProgressCallback(progress);
-#endif
+   if (onProgress)
+      response->setDownloadProgressCallback(onProgress);
 
    response->setRequestFinishedCallback(
       [response, handler = std::move(completionHandler)](IResponse*) {

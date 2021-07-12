@@ -13,9 +13,12 @@
 #include "DeepModel.h"
 
 #include <rapidjson/document.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/filewritestream.h>
+#include <rapidjson/writer.h>
 #include <rapidjson/filereadstream.h>
-#include "rapidjson/schema.h"
-#include "rapidjson/error/en.h"
+#include <rapidjson/schema.h>
+#include <rapidjson/error/en.h>
 
 // ModelCard Implementation
 ModelCard::ModelCard(std::shared_ptr<rapidjson::Document> doc) 
@@ -48,6 +51,19 @@ ModelCard ModelCard::DeepCopy() const
    ModelCard that = ModelCard(copy);
 
    return that;
+}
+
+void ModelCard::Save(const std::string &path) const
+{
+   // https://stackoverflow.com/questions/50728931/save-load-vector-of-object-using-rapidjson-c
+   // TODO: try breaking this with a very large mDoc
+
+   FILE* fp = fopen("output.json", "wb");
+   char writeBuffer[65536];
+   rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
+   rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
+   mDoc->Accept(writer);
+   fclose(fp);
 }
 
 ModelCard ModelCard::CreateFromFile(const std::string &path)

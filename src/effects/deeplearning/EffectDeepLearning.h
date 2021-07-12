@@ -76,7 +76,7 @@ protected:
 
    // writes an output tensor to a track
    // tensor should be shape (1, samples)
-   void TensorToTrack(torch::Tensor waveform, WaveTrack::Holder track, 
+   void TensorToTrack(torch::Tensor waveform, WaveTrack::Holder track,
                       double tStart, double tEnd);
 
    // returns a list of block indices. Use these to 
@@ -94,7 +94,7 @@ private:
 private:
    ModelCard mCard;
 
-   ModelCardPanel *mCardPanel;
+   std::vector<std::unique_ptr<ModelCardPanel>> mPanels;
 
    // DECLARE_EVENT_TABLE()
 };
@@ -105,15 +105,22 @@ public:
    ModelCardPanel(wxWindow *parent, wxWindowID winid, ModelCard card);
 
    void PopulateOrExchange(ShuttleGui &S);
+   bool TransferDataToWindow() override;
+   bool TransferDataFromWindow() override;
 
+   // calbacks
+   void OnInstall(wxCommandEvent &event);
+   void OnCancelInstall(wxCommandEvent &event);
+   void OnUninstall(wxCommandEvent &event);
 private:
    // handlers
-   void OnInstall(wxCommandEvent &event);
 
    void PopulateNameAndAuthor(ShuttleGui &S);
    void PopulateDescription(ShuttleGui &S);
    void PopulateMetadata(ShuttleGui &S);
    void PopulateInstallCtrls(ShuttleGui &S);
+
+   void SetInstallStatus(bool installed);
 
 private:
    wxWindow *mParent;

@@ -47,6 +47,12 @@ public:
    // make a copy of the internal JSON document
    ModelCard DeepCopy() const;
 
+   // maythrow
+   // const 
+   // TODO: exec safety
+   // TODO: docs
+   void Save(const std::string &path) const;
+
    // initialize from a JSON file
    static ModelCard CreateFromFile(const std::string &path);
 
