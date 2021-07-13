@@ -81,6 +81,16 @@ public:
    // @execsafety strong
    rapidjson::Value &operator[](const char *name) const;
 
+   // all cards that have the same repoID (name and author)
+   // will be marked as equal
+   // TODO: add versioning?
+   bool operator==(const ModelCard& that);
+   bool operator!=(const ModelCard& that);
+
+   // returns {author}/{name}
+   std::string GetRepoID() const;
+
+
 private:
    std::shared_ptr<rapidjson::Document> mDoc;
 
@@ -111,6 +121,8 @@ public:
    std::vector<ModelCard>::iterator begin() {return mCards.begin();}
    std::vector<ModelCard>::iterator end() {return mCards.end();}
    size_t Size() {return mCards.size();}
+
+   // ModelCard Find(std::string repoID) { return std::find(, repoID);}
 
 private:
    std::vector<ModelCard> mCards;

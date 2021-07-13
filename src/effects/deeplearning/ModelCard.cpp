@@ -58,7 +58,7 @@ void ModelCard::Save(const std::string &path) const
    // https://stackoverflow.com/questions/50728931/save-load-vector-of-object-using-rapidjson-c
    // TODO: try breaking this with a very large mDoc
 
-   FILE* fp = fopen("output.json", "wb");
+   FILE* fp = fopen(path.c_str(), "wb");
    char writeBuffer[65536];
    rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
    rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
@@ -98,10 +98,16 @@ void ModelCard::Validate(const rapidjson::Document &schema) const
                   + std::string(validator.GetInvalidSchemaKeyword()) + "\n";
       sb.Clear();
 
+      rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+      mDoc->Accept(writer);
       message += "invalid document: \n\t" 
-                  + std::string(mDoc->GetString()) + "\n";
+                  + std::string(sb.GetString()) + "\n";
+
+      sb.Clear();
+      rapidjson::Writer<rapidjson::StringBuffer> swriter(sb);
+      schema.Accept(swriter);
       message += "schema document: \n\t" 
-                  + std::string(schema.GetString()) + "\n";
+                  + std::string(sb.GetString()) + "\n";
 
       throw ModelException(message);
    }
@@ -182,6 +188,26 @@ rapidjson::Value& ModelCard::operator[](const char *name) const
    wxASSERT_MSG(mDoc->HasMember(name), wxString("Document missing %s field").Format(name));
    return mDoc->operator[](name);
 };
+
+std::string ModelCard::GetRepoID() const
+{
+   std::stringstream repoid;
+   // TODO: we NEED to validate "author" and "name" when we fetch the modelcards. 
+   // this should be done internally
+   repoid<<(*this)["author"].GetString()<<"/"<<(*this)["name"].GetString();
+   return repoid.str();
+}
+
+bool ModelCard::operator==(const ModelCard& that)
+{
+    return (*this).GetRepoID() == that.GetRepoID();
+}
+
+bool ModelCard::operator!=(const ModelCard& that)
+{
+    return !((*this) == that);
+}
+
 
 // ModelCardCollection implementation
 
