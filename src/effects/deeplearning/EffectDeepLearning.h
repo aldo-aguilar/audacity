@@ -51,12 +51,11 @@ public:
    // TODO: write desc and instructions
    virtual bool ProcessOne(WaveTrack * track, double tStart, double tEnd) = 0;
 
+   void SetModel(ModelCard card);
+
 protected:
    // TODO: write instructions
    virtual std::string GetDeepEffectID() = 0;
-
-   // the deep model itself
-   std::unique_ptr<DeepModel> mModel;
 
    // gets the number of channels in a (possibly multichannel) track
    size_t GetNumChannels(WaveTrack *leader){return TrackList::Channels(leader).size();}
@@ -86,6 +85,9 @@ protected:
 
    // use this to update the progress ba
    int mCurrentTrackNum;
+   
+   // the deep model itself
+   std::unique_ptr<DeepModel> mModel;
 
 private:
    // handlers
@@ -96,13 +98,16 @@ private:
 
    std::vector<std::unique_ptr<ModelCardPanel>> mPanels;
 
+   wxStaticText *mModelDesc;
+
    // DECLARE_EVENT_TABLE()
 };
 
 class ModelCardPanel final : public wxPanelWrapper
 {
 public:
-   ModelCardPanel(wxWindow *parent, wxWindowID winid, ModelCard card);
+   ModelCardPanel(wxWindow *parent, wxWindowID winid, 
+                  ModelCard card, EffectDeepLearning *effect);
 
    void PopulateOrExchange(ShuttleGui &S);
    bool TransferDataToWindow() override;
@@ -112,15 +117,28 @@ public:
    void OnInstall(wxCommandEvent &event);
    void OnCancelInstall(wxCommandEvent &event);
    void OnUninstall(wxCommandEvent &event);
+
+   void OnEnable(wxCommandEvent &event);
+
+   void OnEnterPanel(wxMouseEvent& event);
+   void OnLeavePanel(wxMouseEvent& event);
+
 private:
+
    // handlers
+   enum class InstallStatus 
+   {
+      uninstalled, 
+      installing, 
+      installed
+   };
 
    void PopulateNameAndAuthor(ShuttleGui &S);
    void PopulateDescription(ShuttleGui &S);
    void PopulateMetadata(ShuttleGui &S);
    void PopulateInstallCtrls(ShuttleGui &S);
 
-   void SetInstallStatus(bool installed);
+   void SetInstallStatus(InstallStatus status);
 
 private:
    wxWindow *mParent;
@@ -133,9 +151,11 @@ private:
    wxStaticText *mInstallStatusText;
    wxGauge *mInstallProgressGauge;
 
+   wxButton *mEnableButton;
+
    ModelCard mCard;
 
-   DECLARE_EVENT_TABLE()
+   EffectDeepLearning *mEffect;
 };
 
 

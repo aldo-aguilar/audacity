@@ -234,11 +234,10 @@ void EffectDeepLearning::PopulateOrExchange(ShuttleGui &S)
       {
          wxWindow *parent = S.GetParent();
 
-         mCard = *manager.GetCards().begin();
          for (auto &card : manager.GetCards())
          {
             // auto panel = std::make_unique<ModelCardPanel>(scroller, wxID_ANY, card);
-            std::unique_ptr<ModelCardPanel> panel = std::make_unique<ModelCardPanel>(parent, wxID_ANY, card);
+            std::unique_ptr<ModelCardPanel> panel = std::make_unique<ModelCardPanel>(parent, wxID_ANY, card, this);
             panel->PopulateOrExchange(S);
             mPanels.push_back(std::move(panel));
             // S.Prop(1).AddWindow(panel);
@@ -254,12 +253,29 @@ void EffectDeepLearning::PopulateOrExchange(ShuttleGui &S)
          else
             modelDesc = "Not Ready";
 
-         S.AddVariableText(TranslatableString(wxString(modelDesc).c_str(), {}));
-         S.AddVariableText(XO("why hello"));
+         mModelDesc = S.AddVariableText(TranslatableString(wxString(modelDesc).c_str(), {}));
       }
       S.EndHorizontalLay();
    }
    S.EndVerticalLay();
+}
+
+void EffectDeepLearning::SetModel(ModelCard card)
+{
+   auto &manager = DeepModelManager::Get();
+
+   if (!manager.IsInstalled(card))
+   {
+      Effect::MessageBox(
+          XO("Please install the model before selecting it."),
+          wxICON_ERROR);
+   }
+   else
+   {
+      mModel = manager.GetModel(card);
+
+      mModelDesc->SetLabel(XO("%s is Ready").Format(card.GetRepoID()).Translation());
+   }  
 }
 
 // bool EffectDeepLearning::TransferDataToWindow()
@@ -296,11 +312,8 @@ enum
    ID_MODELNAME
 };
 
-BEGIN_EVENT_TABLE(ModelCardPanel, wxEvtHandler)
-EVT_BUTTON(ID_INSTALLBUTTON, ModelCardPanel::OnInstall)
-END_EVENT_TABLE()
-
-ModelCardPanel::ModelCardPanel(wxWindow *parent, wxWindowID winid, ModelCard card)
+ModelCardPanel::ModelCardPanel(wxWindow *parent, wxWindowID winid, ModelCard card, 
+                              EffectDeepLearning *effect)
     : wxPanelWrapper(parent, winid, wxDefaultPosition )
 {
    SetLabel(XO("Model Card"));
@@ -308,6 +321,7 @@ ModelCardPanel::ModelCardPanel(wxWindow *parent, wxWindowID winid, ModelCard car
 
    mParent = parent;
    mCard = card;
+   mEffect = effect;
 
    // this->SetBackgroundColour(wxColour())
    SetAutoLayout(true);
@@ -394,26 +408,32 @@ void ModelCardPanel::PopulateInstallCtrls(ShuttleGui &S)
    S.StartVerticalLay(wxCENTER, true);
    {
       // add a progress gauge for downloads, but hide it
-      mInstallProgressGauge = safenew wxGauge(S.GetParent(), wxID_ANY, 100);
-      S.Id(ID_INSTALLPROGRESS).AddWindow(mInstallProgressGauge);
-      // mInstallProgressGauge->Hide();
+      mInstallProgressGauge = safenew wxGauge(S.GetParent(), wxID_ANY, 100); // TODO:  sizing
+      mInstallProgressGauge->SetSize(wxSize(120, 20));
+      S.AddWindow(mInstallProgressGauge);
 
       S.StartHorizontalLay(wxCENTER, true);
       {
          bool installed = manager.IsInstalled(mCard);
-         std::string status = installed ? "installed" : "uninstalled";
-         mInstallStatusText = S.Id(ID_INSTALLSTATUS)
-                                  .AddVariableText(XO("%s").Format(status));
+         TranslatableString status = installed ? XO("installed") : XO("uninstalled");
+         mInstallStatusText = S.AddVariableText(status);
 
          wxColour statusColor = installed ? *wxGREEN : *wxRED;
          mInstallStatusText->SetForegroundColour(statusColor);
 
-         std::string cmd = installed ? "Uninstall" : "Install";
-         mInstallButton = S.AddButton(XO("%s").Format(cmd));
-         mInstallButton->Connect(wxEVT_COMMAND_BUTTON_CLICKED, 
-                                 wxCommandEventHandler(ModelCardPanel::OnInstall), NULL, this);
+         // TODO: do translatable strings here from the begginign
+         TranslatableString cmd = installed ? XO("Uninstall") : XO("Install");
+         mInstallButton = S.AddButton(cmd);
+
+         SetInstallStatus(installed ? InstallStatus::installed : InstallStatus::uninstalled);
       }
       S.EndHorizontalLay();
+
+      mEnableButton = S.AddButton(XO("Enable"));
+      mEnableButton->Connect(wxEVT_COMMAND_BUTTON_CLICKED, 
+                             wxCommandEventHandler(ModelCardPanel::OnEnable), NULL, this);
+
+      // mInstallProgressGauge->Hide();
    }
    S.EndVerticalLay();
 }
@@ -467,21 +487,40 @@ void ModelCardPanel::PopulateOrExchange(ShuttleGui &S)
    S.EndStatic();
 }
 
-void ModelCardPanel::SetInstallStatus(bool installed)
+void ModelCardPanel::SetInstallStatus(InstallStatus status)
 {
-   if (installed)
+   wxColour statusColor;
+   if (status == InstallStatus::installed)
    {
-      this->mInstallButton->SetName("Uninstall");
-      this->mInstallStatusText->SetName("installed");
-      this->mInstallProgressGauge->Hide();
+      this->mInstallButton->SetLabel("Uninstall");
+      this->mInstallButton->Connect(wxEVT_COMMAND_BUTTON_CLICKED, 
+                                 wxCommandEventHandler(ModelCardPanel::OnUninstall), NULL, this);
+
+      this->mInstallStatusText->SetLabel("installed");
+
+      statusColor = *wxGREEN;
+   }
+   else if (status == InstallStatus::installing)
+   {
+      this->mInstallButton->SetLabel("Cancel");
+      this->mInstallButton->Connect(wxEVT_COMMAND_BUTTON_CLICKED, 
+                                 wxCommandEventHandler(ModelCardPanel::OnCancelInstall), NULL, this);
+      this->mInstallProgressGauge->Show();
+
+      this->mInstallStatusText->SetLabel("installing...");
+      statusColor = *wxBLACK; 
    }
    else
    {
-      this->mInstallButton->SetName("Install");
-      this->mInstallStatusText->SetName("uninstalled");
+      this->mInstallButton->SetLabel("Install");
+      this->mInstallButton->Connect(wxEVT_COMMAND_BUTTON_CLICKED, 
+                                 wxCommandEventHandler(ModelCardPanel::OnInstall), NULL, this);
+      this->mInstallProgressGauge->Hide();
+
+      this->mInstallStatusText->SetLabel("uninstalled");
+      statusColor = *wxRED;
    }
 
-   wxColour statusColor = installed ? *wxGREEN : *wxRED;
    mInstallStatusText->SetForegroundColour(statusColor);
 }
 
@@ -491,13 +530,17 @@ void ModelCardPanel::OnUninstall(wxCommandEvent &event)
 
    // TODO: show a prompt to confirm?
    manager.Uninstall(mCard);
-   this->SetInstallStatus(false);
+   this->SetInstallStatus(InstallStatus::uninstalled);
 }
 
 void ModelCardPanel::OnCancelInstall(wxCommandEvent &event)
 {
    DeepModelManager &manager = DeepModelManager::Get();
+
    // TODO: cleanup!!
+   manager.CancelInstall(mCard);
+   manager.Uninstall(mCard);
+   SetInstallStatus(InstallStatus::uninstalled);
 }
 
 void ModelCardPanel::OnInstall(wxCommandEvent &event)
@@ -505,25 +548,25 @@ void ModelCardPanel::OnInstall(wxCommandEvent &event)
    DeepModelManager &manager = DeepModelManager::Get();
 
    // TODO: what if the user closes the window while this is downloading?
+   // should the destructor of something make sure that no installation was left halfway thru?
    //TODO: add CallAfter to each of these
    ProgressCallback onProgress([this, &manager](int64_t current, int64_t expected)
                                {
                                   this->CallAfter(
                                       [current, expected, this, &manager]()
                                       {
-                                         // if our expected is 0, change the gauge type
-                                         // to nondeterministic
-                                         std::cout << current << " out of " << expected << std::endl;
-                                         this->mInstallProgressGauge->Show();
-
-                                         if (expected == 0)
-                                         {
-                                            // update the progress gauge
-                                            this->mInstallProgressGauge->SetRange(expected);
-                                            this->mInstallProgressGauge->SetValue(current);
-                                         }
-                                         else
-                                            this->mInstallProgressGauge->Pulse();
+                                          // if our expected is 0, change the gauge type
+                                          // to nondeterministic
+                                          std::cout << current << " out of " << expected << std::endl;
+ 
+                                          if (expected > 0)
+                                          {
+                                             // update the progress gauge
+                                             this->mInstallProgressGauge->SetRange(expected);
+                                             this->mInstallProgressGauge->SetValue(current);
+                                          }
+                                          else
+                                             this->mInstallProgressGauge->Pulse();
                                       });
                                });
 
@@ -531,14 +574,27 @@ void ModelCardPanel::OnInstall(wxCommandEvent &event)
                                    { this->CallAfter(
                                          [this, &manager]()
                                          {
-                                            this->SetInstallStatus(true);
+                                            this->SetInstallStatus(InstallStatus::installed);
                                          }); });
 
    if (!manager.IsInstalled(mCard))
-      this->mInstallButton->SetName("Cancel");
-      this->mInstallButton->Connect(wxEVT_COMMAND_BUTTON_CLICKED, 
-                                 wxCommandEventHandler(ModelCardPanel::OnCancelInstall), NULL, this);
-      this->mInstallStatusText->SetName("installing");
+      this->SetInstallStatus(InstallStatus::installing);
 
       manager.Install(mCard, onProgress, onInstallDone);
+}
+
+void ModelCardPanel::OnEnable(wxCommandEvent &event)
+{
+   auto &manager = DeepModelManager::Get();
+   mEffect->SetModel(mCard);
+}
+
+void ModelCardPanel::OnEnterPanel(wxMouseEvent& event) 
+{
+   SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
+}
+
+void ModelCardPanel::OnLeavePanel(wxMouseEvent& event) 
+{
+   SetBackgroundColour(GetBackgroundColour());
 }
