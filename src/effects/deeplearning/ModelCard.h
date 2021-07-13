@@ -27,7 +27,6 @@
 
 #include "MemoryX.h"
 
-//TODO: private members should be separate from methods for easy reading
 // wrapper for a shared_ptr to a JSON document. 
 class ModelCard
 {
@@ -106,6 +105,7 @@ public:
 
    // insert a model card into the collection if it matches the schema
    // will throw if the card does not match the schema
+   // only adds if the card isn't already there (doesn't throw)
    // @execsafety strong
    void Insert(ModelCard &card);
 

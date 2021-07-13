@@ -145,6 +145,7 @@ rapidjson::Document ModelCard::FromString(const std::string &data)
    return d;
 }
 
+// TODO: this is unnecessary, remove this
 std::string ModelCard::QueryAsString(const char *key) const
 {
    std::string output;
@@ -218,8 +219,14 @@ ModelCardCollection::ModelCardCollection(ModelCard schema)
 
 void ModelCardCollection::Insert(ModelCard &card)
 {
-   card.Validate(*(mSchema.GetDoc()));
-   mCards.push_back(card);
+   // only add it if its new
+   auto it = std::find(this->begin(), this->end(), card);
+   bool isMissing = (it == this->end());
+   if (isMissing)
+   {
+      card.Validate(*(mSchema.GetDoc()));
+      mCards.push_back(card);
+   }
 }
 
 ModelCardCollection ModelCardCollection::Filter(ModelCardFilter filter)

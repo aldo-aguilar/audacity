@@ -559,6 +559,8 @@ void ModelCardPanel::OnInstall(wxCommandEvent &event)
    if (!manager.IsInstalled(mCard))
       this->SetInstallStatus(InstallStatus::installing);
 
+      // TODO: since this is done in another thread, how do I catch an error, like
+      // losing the connection in the middle of a download? 
       manager.Install(mCard, onProgress, onInstallDone);
 }
 

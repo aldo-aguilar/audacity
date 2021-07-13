@@ -78,7 +78,6 @@ std::unique_ptr<DeepModel> DeepModelManager::GetModel(ModelCard &card)
    std::unique_ptr<DeepModel> model = std::make_unique<DeepModel>();
    model->SetCard(card);
 
-   // TODO: only do if model is loaded, else return  an empty model
    // GetRepoDir won't work if the card is empty
    wxFileName path = wxFileName(GetRepoDir(card), "model.pt");
 
@@ -88,20 +87,15 @@ std::unique_ptr<DeepModel> DeepModelManager::GetModel(ModelCard &card)
    return model;
 }  
 
-ModelCard DeepModelManager::GetCached(std::string &effectID)
-{
-   // TODO
-   return ModelCard();
-}
-
 void DeepModelManager::FetchCards(ProgressDialog *progress)
 {
+   FetchInstalledCards();
+
    if (progress)
       progress->SetMessage(XO("Fetching Model Repos..."));
 
    RepoIDList repos = mHFWrapper.FetchRepos();
 
-   //TODO: exception handling 
    int total = repos.size();
    for (int idx = 0;  idx < repos.size() ; idx++)
    {
@@ -122,7 +116,6 @@ void DeepModelManager::FetchCards(ProgressDialog *progress)
          std::stringstream msg;
          msg<<"failed to parse metadata entry: "<<std::endl;
          msg<<e.what()<<std::endl;
-         // (wxString(msg.str()));
          std::cerr<<msg.str()<<std::endl;
 
          continue;
@@ -131,28 +124,68 @@ void DeepModelManager::FetchCards(ProgressDialog *progress)
       // validate it and insert it into collection
       try
       {
-         // only add it if its new
-         auto it = std::find(mCards.begin(), mCards.end(), card);
-         bool isMissing = (it == mCards.end());
-         if (isMissing)
-            mCards.Insert(card);
+         mCards.Insert(card);
       }
       catch (const std::exception& e)
       {
-         // TODO: do we even let the user know that
-         // the card didn't validate?  
          std::stringstream msg;
          msg<<"Failed to validate metadata.json for repo "<<repoId<<std::endl;
          msg<<e.what()<<std::endl;
          std::cerr<<msg.str()<<std::endl;
-         
       }
    }
+}
 
-   // TODO: load from the installed repos as well
-   // make sure we don't have the same repo twice
-   // what if we got it from the HF wrapper but we 
-   // already had it installed? 
+void DeepModelManager::FetchInstalledCards(ProgressDialog *progress = NULL)
+{
+   wxString pattern = wxFileName(DLModelsDir(), "**/metadata.json").GetFullPath();
+   wxString cardF = wxFindFirstFile(pattern);
+   size_t numCardsRead = 0;
+
+   if (progress)
+      progress->SetMessage(XO("Fetching local models..."))
+
+   while (!cardF.empty())
+   {
+
+      // grab the card 
+      ModelCard card;
+      try
+      {
+         card = ModelCard.CreateFromFile(cardF.ToStdString());
+      }
+      catch (const ModelException &e)
+      {
+         std::stringstream msg;
+         msg<<"failed to parse metadata entry: "<<std::endl;
+         msg<<e.what()<<std::endl;\
+         std::cerr<<msg.str()<<std::endl;
+
+         continue;
+      }
+
+      std::string repoId = card.GetRepoID();
+
+      // validate it and insert it into collection
+      try
+      {
+         mCards.Insert(card);
+      }
+      catch (const std::exception& e)
+      {
+         std::stringstream msg;
+         msg<<"Failed to validate metadata.json for repo "<<repoId<<std::endl;
+         msg<<e.what()<<std::endl;
+         std::cerr<<msg.str()<<std::endl;
+      }
+      
+      if (progress)
+      progress->Update(numCardsRead, 0, 
+                     (XO("Fetching &%s...").Format(repoId)));
+
+      numCardsRead++;
+      f = wxFindNextFile();
+   }
 }
 
 bool DeepModelManager::IsInstalled(ModelCard &card)
@@ -209,8 +242,7 @@ void DeepModelManager::CancelInstall(ModelCard &card)
 {
    if (mResponseMap.find(card.GetRepoID()) == mResponseMap.end())
     {
-      // TODO: do we throw here?
-      // should never really reach here
+      // should never really reach here (can't cancel an install that's not ongoing)
       wxASSERT(false);
       return;
     }   
@@ -302,13 +334,13 @@ ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
    return card;
 }
 
-// TODO: maybe we want ANOTHER completion  callback that gives you something more high level
 network_manager::ResponsePtr HuggingFaceWrapper::DownloadModel
 (const ModelCard &card, const std::string &repoID, const std::string &path, 
  ProgressCallback onProgress, CompletionHandler onCompleted)
 {
    // TODO: this is not raising an error for an invalid URL 
    // try adding a double slash anyuwhere to break it. 
+   // its because huggingface returns 200s saying "Not Found"
    std::string modelUrl = GetRootURL(repoID)  + "model.pt";
    std::cout<<modelUrl<<std::endl;
 

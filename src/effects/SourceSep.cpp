@@ -56,7 +56,7 @@ ComponentInterfaceSymbol EffectSourceSep::GetSymbol()
 TranslatableString EffectSourceSep::GetDescription()
 {
    return XO("The goal of audio source separation is to isolate \
-             the sound sources in a given mixture of sounds."); // TODO
+             the sound sources in a given mixture of sounds.");
 }
 
 wxString EffectSourceSep::ManualPage()

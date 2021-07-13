@@ -80,6 +80,7 @@ class DeepModelManager
 
    FilePath GetRepoDir(const ModelCard &card);
 
+   void FetchInstalledCards(ProgressDialog *progress = NULL);
 
 public:
    void FetchCards(ProgressDialog *progress = NULL);
@@ -93,9 +94,6 @@ public:
 
    // loads the deep model and passes ownership to the caller
    std::unique_ptr<DeepModel> GetModel(ModelCard &card);
-
-   // returns the last used model card in the effect
-   ModelCard GetCached(std::string &effectID);
 
    //TODO:
    bool RegisterLocal(std::string &metadataPath, std::string &modelPath);
