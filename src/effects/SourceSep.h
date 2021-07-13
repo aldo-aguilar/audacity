@@ -52,35 +52,15 @@ public:
 
    EffectType GetType() override;
 
-   // EffectClientInterface implementation
-
-   // TODO: may not need these
-   // bool DefineParams(ShuttleParams &S) override;
-   // bool GetAutomationParameters(CommandParameters &parms) override;
-   // bool SetAutomationParameters(CommandParameters &parms) override;
-
    // Effect implementation
    bool ProcessOne(WaveTrack * track, double tStart, double tEnd) override;
 
-   // bool TransferDataToWindow() override;
-   // bool TransferDataFromWindow() override;
-
 private:
-   // handlers
-   // void OnLoadButton(wxCommandEvent &event);
 
    std::vector<WaveTrack::Holder> CreateSourceTracks(WaveTrack *track, 
                                              std::vector<std::string> &labels);
    void PostProcessSources(std::vector<WaveTrack::Holder> &sourceTracks, 
                            sampleFormat fmt, int sampleRate);
-
-private:
-
-   // wxButton *mLoadModelBtn;
-   // wxStaticText *mDescription;
-
-   // std::map<std::string, wxStaticText*> mMetadataFields;
-   // void UpdateMetadataFields();
 
 };
 
