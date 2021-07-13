@@ -588,13 +588,3 @@ void ModelCardPanel::OnEnable(wxCommandEvent &event)
    auto &manager = DeepModelManager::Get();
    mEffect->SetModel(mCard);
 }
-
-void ModelCardPanel::OnEnterPanel(wxMouseEvent& event) 
-{
-   SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
-}
-
-void ModelCardPanel::OnLeavePanel(wxMouseEvent& event) 
-{
-   SetBackgroundColour(GetBackgroundColour());
-}

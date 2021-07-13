@@ -99,8 +99,6 @@ private:
    std::vector<std::unique_ptr<ModelCardPanel>> mPanels;
 
    wxStaticText *mModelDesc;
-
-   // DECLARE_EVENT_TABLE()
 };
 
 class ModelCardPanel final : public wxPanelWrapper
@@ -120,12 +118,8 @@ public:
 
    void OnEnable(wxCommandEvent &event);
 
-   void OnEnterPanel(wxMouseEvent& event);
-   void OnLeavePanel(wxMouseEvent& event);
-
 private:
 
-   // handlers
    enum class InstallStatus 
    {
       uninstalled, 
@@ -133,6 +127,7 @@ private:
       installed
    };
 
+   // handlers
    void PopulateNameAndAuthor(ShuttleGui &S);
    void PopulateDescription(ShuttleGui &S);
    void PopulateMetadata(ShuttleGui &S);
