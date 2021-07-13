@@ -145,26 +145,6 @@ rapidjson::Document ModelCard::FromString(const std::string &data)
    return d;
 }
 
-// TODO: this is unnecessary, remove this
-std::string ModelCard::QueryAsString(const char *key) const
-{
-   std::string output;
-   // get the value as a string type
-   if (mDoc->HasMember(key))
-   {
-      rapidjson::StringBuffer sBuffer;
-      rapidjson::Writer<rapidjson::StringBuffer> writer(sBuffer);
-
-      (*mDoc)[key].Accept(writer);
-      output = sBuffer.GetString();
-   }
-   else
-   {
-      output = "None";
-   }
-   return std::string(output);
-}
-
 std::vector<std::string> ModelCard::GetLabels() const
 {
    // iterate through the labels and collect

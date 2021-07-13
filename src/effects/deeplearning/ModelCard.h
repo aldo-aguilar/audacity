@@ -62,13 +62,6 @@ public:
    // alternative constructor (from file)
    static ModelCard InitFromFile(const std::string &path);
 
-   // \brief queries the metadata dictionary, 
-   // will convert any JSON type to a non-prettified string
-   // if the key does not exist, returns "None"
-   // useful for when we want to display certain 
-   // metadata fields to the user, even if the doc is empty.
-   std::string QueryAsString(const char *key) const;
-
    // returns the labels associated with the model. 
    std::vector<std::string> GetLabels() const;
 
