@@ -48,6 +48,7 @@ bool EffectDeepLearning::Init()
 
 void EffectDeepLearning::End()
 {
+   // TODO:  how to clean up card panels?
    // release model
    mModel.reset();
 }
@@ -277,28 +278,6 @@ void EffectDeepLearning::SetModel(ModelCard card)
       mModelDesc->SetLabel(XO("%s is Ready").Format(card.GetRepoID()).Translation());
    }  
 }
-
-// bool EffectDeepLearning::TransferDataToWindow()
-// {
-//    if (!mUIParent->TransferDataToWindow()) // HUGO: might wanna use mUIParent to pull up the manager window
-//    {
-//       return false;
-//    }
-
-//    mCardPanel->Refresh(false);
-
-//    return true;
-// }
-
-// bool EffectDeepLearning::TransferDataFromWindow()
-// {
-//    if (!mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
-//    {
-//       return false;
-//    }
-
-//    return true;
-// }
 
 // ModelCardPanel
 

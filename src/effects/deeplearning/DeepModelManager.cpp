@@ -69,10 +69,15 @@ FilePath DeepModelManager::GetRepoDir(const ModelCard &card)
 
 std::unique_ptr<DeepModel> DeepModelManager::GetModel(ModelCard &card)
 {
+   if (!IsInstalled(card))
+   {
+      wxASSERT(IsInstalled(card)); 
+      throw ModelManagerException("model is not loaded.")
+   }
+
    std::unique_ptr<DeepModel> model = std::make_unique<DeepModel>();
    model->SetCard(card);
 
-   // TODO: raise exception if 
    // TODO: only do if model is loaded, else return  an empty model
    // GetRepoDir won't work if the card is empty
    wxFileName path = wxFileName(GetRepoDir(card), "model.pt");
