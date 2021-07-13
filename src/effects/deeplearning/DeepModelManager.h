@@ -46,7 +46,7 @@ public:
 class HuggingFaceWrapper
 {
    std::string GetRootURL(const std::string &repoID);
-   void doGet(std::string url, CompletionHandler completionHandler, ProgressCallback onProgress=NULL);
+   audacity::network_manager::ResponsePtr doGet(std::string url, CompletionHandler completionHandler, ProgressCallback onProgress=NULL);
 
 public:
    HuggingFaceWrapper();
@@ -64,7 +64,8 @@ public:
    RepoIDList FetchRepos();
 
    // download a model
-   void DownloadModel(const ModelCard &card, const std::string &path,
+   audacity::network_manager::ResponsePtr DownloadModel(
+                     const ModelCard &card, const std::string &repoID, const std::string &path,
                       ProgressCallback onProgress, CompletionHandler onCompleted);
 
 private:
@@ -101,9 +102,11 @@ public:
 
    // download and install a deep learning model
    bool IsInstalled(ModelCard &card);
+   bool IsInstalling(ModelCard &card);
    bool Install(ModelCard &card, ProgressCallback onProgress, 
                                  CompletionHandler onCompleted);
    void Uninstall(ModelCard &card);
+   void CancelInstall(ModelCard &card);
 
    ModelCardCollection GetCards() { return mCards; }
 
@@ -111,6 +114,8 @@ private:
    ModelCard mSchema;
    ModelCardCollection mCards;
    std::map<std::string, ModelCard> mCachedCards;
+
+   std::map<std::string, audacity::network_manager::ResponsePtr> mResponseMap;
 
    HuggingFaceWrapper mHFWrapper;
 

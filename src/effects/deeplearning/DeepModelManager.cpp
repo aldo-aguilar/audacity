@@ -17,6 +17,8 @@
 
 #include <wx/tokenzr.h>
 
+using namespace audacity;
+
 DeepModelManager::DeepModelManager() : mSchema(ModelCard::CreateFromFile(kSchemaPath)),
                                        mCards(ModelCardCollection(mSchema))
 {
@@ -55,7 +57,12 @@ FilePath DeepModelManager::GetRepoDir(const ModelCard &card)
    std::cout<<card["name"].GetString()<<std::endl;
 
    repoDir.AppendDir(card["author"].GetString());
+   if (!repoDir.Exists())
+      repoDir.Mkdir();
+
    repoDir.AppendDir(card["name"].GetString());
+   if (!repoDir.Exists())
+      repoDir.Mkdir();
 
    return repoDir.GetFullPath();
 }
@@ -95,24 +102,45 @@ void DeepModelManager::FetchCards(ProgressDialog *progress)
    {
       std::string repoId = repos[idx];
 
-      // fetch card and insert into mCards if not already there. 
-      ModelCard card = mHFWrapper.GetCard(repoId);
-
       if (progress)
             progress->Update(idx, total, 
                            (XO("Fetching &%s...").Format(repoId)));
 
+      // grab the card 
+      ModelCard card;
       try
       {
-         mCards.Insert(card);
+         card = mHFWrapper.GetCard(repoId);
+      }
+      catch (const ModelException &e)
+      {
+         std::stringstream msg;
+         msg<<"failed to parse metadata entry: "<<std::endl;
+         msg<<e.what()<<std::endl;
+         // (wxString(msg.str()));
+         std::cerr<<msg.str()<<std::endl;
+
+         continue;
+      }
+
+      // validate it and insert it into collection
+      try
+      {
+         // only add it if its new
+         auto it = std::find(mCards.begin(), mCards.end(), card);
+         bool isMissing = (it == mCards.end());
+         if (isMissing)
+            mCards.Insert(card);
       }
       catch (const std::exception& e)
       {
          // TODO: do we even let the user know that
          // the card didn't validate?  
-         wxLogDebug(wxString("Failed to validate metadata.json for repo %s")
-                                                            .Format(wxString(repoId)));
-         wxLogDebug(e.what());
+         std::stringstream msg;
+         msg<<"Failed to validate metadata.json for repo "<<repoId<<std::endl;
+         msg<<e.what()<<std::endl;
+         std::cerr<<msg.str()<<std::endl;
+         
       }
    }
 
@@ -140,18 +168,21 @@ bool DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, Com
    // download the model
    try 
    {
-      mHFWrapper.DownloadModel(card, 
-                              wxFileName(GetRepoDir(card), "model.pt").GetFullPath().ToStdString(), 
-                              onProgress, 
-                              onCompleted);
-
       // save the metadata
       // TODO: maybe have methods that return the path to card and path to model?
+      std::cout<<"saving model card for "<<card.GetRepoID();
       card.Save(wxFileName(GetRepoDir(card), "metadata.json").GetFullPath().ToStdString());
+
+      std::cout<<"downloading model for "<<card.GetRepoID();
+      network_manager::ResponsePtr response = mHFWrapper.DownloadModel(
+               card, card.GetRepoID(), wxFileName(GetRepoDir(card), "model.pt").GetFullPath().ToStdString(), 
+               onProgress, onCompleted);
+      mResponseMap[card.GetRepoID()] = response;
    }
-   catch (...)
+   catch (const char *msg)
    {
       //TODO: handle this
+      std::cerr<<msg<<std::endl;
       return false;
    }
 
@@ -162,6 +193,29 @@ void DeepModelManager::Uninstall(ModelCard &card)
 {
    if (!IsInstalled(card))
       return;
+
+   wxRemoveFile(wxFileName(GetRepoDir(card), "model.pt").GetFullPath());
+   wxRemoveFile(wxFileName(GetRepoDir(card), "metadata.json").GetFullPath());
+   
+   wxFileName(GetRepoDir(card)).RemoveLastDir();
+}
+
+void DeepModelManager::CancelInstall(ModelCard &card)
+{
+   if (mResponseMap.find(card.GetRepoID()) == mResponseMap.end())
+    {
+      // TODO: do we throw here?
+      // should never really reach here
+      wxASSERT(false);
+      return;
+    }   
+   else
+   {
+      std::string repoid = card.GetRepoID();
+      network_manager::ResponsePtr response = mResponseMap[repoid];
+      response->abort();
+      mResponseMap.erase(repoid);
+   }
 }
 
 // HuggingFaceWrapper Implementation
@@ -238,28 +292,30 @@ ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
       }
    };
 
-   doGet(modelCardUrl, completionHandler);
+   network_manager::ResponsePtr response = doGet(modelCardUrl, completionHandler);
    
    return card;
 }
 
 // TODO: maybe we want ANOTHER completion  callback that gives you something more high level
-void HuggingFaceWrapper::DownloadModel(const ModelCard &card, const std::string &path, 
-                                       ProgressCallback onProgress, CompletionHandler onCompleted)
+network_manager::ResponsePtr HuggingFaceWrapper::DownloadModel
+(const ModelCard &card, const std::string &repoID, const std::string &path, 
+ ProgressCallback onProgress, CompletionHandler onCompleted)
 {
-   std::stringstream repoid;
-   // TODO: we NEED to validate "author" and "name" when we fetch the modelcards. 
-   // this should be done internally
-   repoid<<card["author"].GetString()<<"+"<<card["name"].GetString();
-   std::string modelUrl = GetRootURL(repoid.str())  + "/model.pt";
+   // TODO: this is not raising an error for an invalid URL 
+   // try adding a double slash anyuwhere to break it. 
+   std::string modelUrl = GetRootURL(repoID)  + "model.pt";
+   std::cout<<modelUrl<<std::endl;
 
    CompletionHandler completionHandler = [path, onComplete = std::move(onCompleted), 
-                                          &card](int httpCode, std::string body)
+                                          card](int httpCode, std::string body)
    {
-      if (!(httpCode == 200))
+      // looks like models can also return a 302 and succeed
+      if (!(httpCode == 200 || httpCode == 302))
       {
          std::stringstream msg;
          msg << "GET request failed. Error code: " << httpCode;
+         std::cerr<<msg.str()<<std::endl;
          throw ModelManagerException(msg.str());
       }
       else
@@ -277,12 +333,14 @@ void HuggingFaceWrapper::DownloadModel(const ModelCard &card, const std::string 
       }
    };
 
-   doGet(modelUrl, completionHandler, onProgress);
+   auto response = doGet(modelUrl, completionHandler, onProgress);
+   return response;
 }
 
-void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHandler, ProgressCallback onProgress)
+network_manager::ResponsePtr HuggingFaceWrapper::doGet
+(std::string url, CompletionHandler completionHandler, ProgressCallback onProgress)
 {
-   using namespace audacity::network_manager;
+   using namespace network_manager;
 
    Request request(url);
 
@@ -305,5 +363,5 @@ void HuggingFaceWrapper::doGet(std::string url, CompletionHandler completionHand
             handler(response->getHTTPCode(), responseData);
       });
 
-   return;
+   return response;
 }
