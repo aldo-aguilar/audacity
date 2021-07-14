@@ -53,9 +53,6 @@ FilePath DeepModelManager::GetRepoDir(const ModelCard &card)
    wxASSERT(card.GetDoc()->HasMember("author"));
    wxASSERT(card.GetDoc()->HasMember("name"));
 
-   std::cout<<card["author"].GetString()<<std::endl;
-   std::cout<<card["name"].GetString()<<std::endl;
-
    repoDir.AppendDir(card["author"].GetString());
    if (!repoDir.Exists())
       repoDir.Mkdir();
@@ -115,7 +112,7 @@ void DeepModelManager::FetchCards(ProgressDialog *progress)
          std::stringstream msg;
          msg<<"failed to parse metadata entry: "<<std::endl;
          msg<<e.what()<<std::endl;
-         std::cerr<<msg.str()<<std::endl;
+         wxLogDebug(wxString(msg.str()));
 
          continue;
       }
@@ -130,7 +127,7 @@ void DeepModelManager::FetchCards(ProgressDialog *progress)
          std::stringstream msg;
          msg<<"Failed to validate metadata.json for repo "<<repoId<<std::endl;
          msg<<e.what()<<std::endl;
-         std::cerr<<msg.str()<<std::endl;
+         wxLogDebug(wxString(msg.str()));
       }
    }
 }
@@ -159,8 +156,8 @@ void DeepModelManager::FetchInstalledCards(ProgressDialog *progress)
       {
          std::stringstream msg;
          msg<<"failed to parse metadata entry: "<<std::endl;
-         msg<<e.what()<<std::endl;\
-         std::cerr<<msg.str()<<std::endl;
+         msg<<e.what()<<std::endl;
+         wxLogDebug(wxString(msg.str()));
 
          continue;
       }
@@ -177,7 +174,7 @@ void DeepModelManager::FetchInstalledCards(ProgressDialog *progress)
          std::stringstream msg;
          msg<<"Failed to validate metadata.json for repo "<<repoId<<std::endl;
          msg<<e.what()<<std::endl;
-         std::cerr<<msg.str()<<std::endl;
+         wxLogDebug(wxString(msg.str()));
       }
       
       if (progress)
@@ -209,10 +206,14 @@ bool DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, Com
    {
       // save the metadata
       // TODO: maybe have methods that return the path to card and path to model?
-      std::cout<<"saving model card for "<<card.GetRepoID();
+      std::stringstream msg;
+      msg<<"saving model card for "<<card.GetRepoID()<<std::endl;
+      wxLogDebug(wxString(msg.str()));
       card.Save(wxFileName(GetRepoDir(card), "metadata.json").GetFullPath().ToStdString());
 
-      std::cout<<"downloading model for "<<card.GetRepoID();
+      msg = std::stringstream();
+      msg<<"downloading model for "<<card.GetRepoID()<<std::endl;
+      wxLogDebug(wxString(msg.str()));
       network_manager::ResponsePtr response = mHFWrapper.DownloadModel(
                card, card.GetRepoID(), wxFileName(GetRepoDir(card), "model.pt").GetFullPath().ToStdString(), 
                onProgress, onCompleted);
@@ -220,8 +221,7 @@ bool DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, Com
    }
    catch (const char *msg)
    {
-      //TODO: handle this
-      std::cerr<<msg<<std::endl;
+      wxLogError(msg);
       return false;
    }
 
@@ -360,7 +360,10 @@ network_manager::ResponsePtr HuggingFaceWrapper::DownloadModel
    // try adding a double slash anyuwhere to break it. 
    // its because huggingface returns 200s saying "Not Found"
    std::string modelUrl = GetRootURL(repoID)  + "model.pt";
-   std::cout<<modelUrl<<std::endl;
+   
+   std::stringstream msg;
+   msg<<"downloading from "<<modelUrl<<std::endl;
+   wxLogDebug(wxString(msg.str()));
 
    CompletionHandler completionHandler = [path, onComplete = std::move(onCompleted), 
                                           card](int httpCode, std::string body)
@@ -368,6 +371,8 @@ network_manager::ResponsePtr HuggingFaceWrapper::DownloadModel
       // looks like models can also return a 302 and succeed
       if (!(httpCode == 200 || httpCode == 302))
       {
+         // TODO: this error should be actually handled outside DownloadModel
+         // so it gets handled in the main thread
          std::stringstream msg;
          msg << "GET request failed. Error code: " << httpCode;
          std::cerr<<msg.str()<<std::endl;

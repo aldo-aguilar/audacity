@@ -180,8 +180,8 @@ torch::Tensor EffectDeepLearning::ForwardPass(torch::Tensor input)
    }
    catch (const std::exception &e)
    {
-      // TODO: what do
-      std::cerr << e.what();
+      wxLogError(e.what());
+      wxLogDebug(e.what());
       Effect::MessageBox(XO("An error occurred during the forward pass"
                             "This model may be broken."),
                          wxOK | wxICON_ERROR);
@@ -511,16 +511,11 @@ void ModelCardPanel::OnInstall(wxCommandEvent &event)
 
    // TODO: what if the user closes the window while this is downloading?
    // should the destructor of something make sure that no installation was left halfway thru?
-   //TODO: add CallAfter to each of these
    ProgressCallback onProgress([this, &manager](int64_t current, int64_t expected)
                                {
                                   this->CallAfter(
                                       [current, expected, this, &manager]()
                                       {
-                                          // if our expected is 0, change the gauge type
-                                          // to nondeterministic
-                                          std::cout << current << " out of " << expected << std::endl;
- 
                                           if (expected > 0)
                                           {
                                              // update the progress gauge

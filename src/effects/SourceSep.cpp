@@ -59,9 +59,9 @@ TranslatableString EffectSourceSep::GetDescription()
              the sound sources in a given mixture of sounds.");
 }
 
-wxString EffectSourceSep::ManualPage()
+ManualPageID EffectSourceSep::ManualPage()
 {
-   return wxT("Source Separation"); // TODO
+   return L"Source Separation"; 
 }
 
 // EffectDefinitionInterface implementation
