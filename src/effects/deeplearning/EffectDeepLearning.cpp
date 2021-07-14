@@ -505,41 +505,66 @@ void ModelCardPanel::OnCancelInstall(wxCommandEvent &event)
    SetInstallStatus(InstallStatus::uninstalled);
 }
 
+// TODO: this is good, but still hangs on "installing"
+// even when you turn of the connection
 void ModelCardPanel::OnInstall(wxCommandEvent &event)
 {
    DeepModelManager &manager = DeepModelManager::Get();
 
    // TODO: what if the user closes the window while this is downloading?
    // should the destructor of something make sure that no installation was left halfway thru?
+   // what does the network manager do in that case? 
    ProgressCallback onProgress([this, &manager](int64_t current, int64_t expected)
-                               {
-                                  this->CallAfter(
-                                      [current, expected, this, &manager]()
-                                      {
-                                          if (expected > 0)
-                                          {
-                                             // update the progress gauge
-                                             this->mInstallProgressGauge->SetRange(expected);
-                                             this->mInstallProgressGauge->SetValue(current);
-                                          }
-                                          else
-                                             this->mInstallProgressGauge->Pulse();
-                                      });
-                               });
+   {
+      this->CallAfter(
+         [current, expected, this, &manager]()
+         {
+            if (expected > 0)
+            {
+               // update the progress gauge
+               this->mInstallProgressGauge->SetRange(expected);
+               this->mInstallProgressGauge->SetValue(current);
+            }
+            else
+               this->mInstallProgressGauge->Pulse();
+         });
+   });
 
    CompletionHandler onInstallDone([this, &manager](int httpCode, std::string responseBody)
-                                   { this->CallAfter(
-                                         [this, &manager]()
-                                         {
-                                            this->SetInstallStatus(InstallStatus::installed);
-                                         }); });
+   {  this->CallAfter(
+         [this, httpCode, &manager]()
+         {
+            if (httpCode == 200 || httpCode == 302)
+            {
+               // check if install succeeded
+               if (manager.IsInstalled(this->mCard))
+                  this->SetInstallStatus(InstallStatus::installed);
+               else
+                  this->mEffect->Effect::MessageBox(
+                     XO("An error ocurred while installing the model with Repo ID %s. ")
+                        .Format(this->mCard.GetRepoID())
+                  );
+            }
+            else
+            {
+               this->SetInstallStatus(InstallStatus::uninstalled);
+               this->mEffect->Effect::MessageBox(
+                  XO("An error ocurred while downloading the model with Repo ID %s. \n"
+                     "HTTP Code: %d").Format(this->mCard.GetRepoID(), httpCode)
+               );
+            }
+         }
+      ); 
+   });
 
    if (!manager.IsInstalled(mCard))
+   {
       this->SetInstallStatus(InstallStatus::installing);
 
       // TODO: since this is done in another thread, how do I catch an error, like
       // losing the connection in the middle of a download? 
       manager.Install(mCard, onProgress, onInstallDone);
+   }
 }
 
 void ModelCardPanel::OnEnable(wxCommandEvent &event)

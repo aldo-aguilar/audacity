@@ -196,16 +196,46 @@ bool DeepModelManager::IsInstalled(ModelCard &card)
    return (modelPath.FileExists() && metadataPath.FileExists());
 }
 
-bool DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, CompletionHandler onCompleted)
+void DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, CompletionHandler onCompleted)
 { 
    if (IsInstalled(card))
-      return true;
+      return ;
+
+   // set up the install handler
+   CompletionHandler installHandler(
+   [this, card, handler {std::move(onCompleted)} ](int httpCode, std::string body)
+   {
+      std::string repoId = card.GetRepoID(); 
+      std::string path = wxFileName(this->GetRepoDir(card), "model.pt").GetFullPath().ToStdString();
+
+      // only attempt save if request succeeded
+      if ((httpCode == 200) || (httpCode == 302))
+      {
+         std::istringstream modulestr(body);
+
+         DeepModel tmpModel = DeepModel();
+         ModelCard cardCopy = ModelCard(card);
+         tmpModel.SetCard(cardCopy);
+         try
+         {
+            tmpModel.Load(modulestr);
+            tmpModel.Save(path);
+         }
+         catch (const ModelException &e)
+         {
+            // clean up 
+            Uninstall(cardCopy);
+         }
+      }
+
+      // let the caller handle this
+      handler(httpCode, body);
+   });
 
    // download the model
    try 
    {
       // save the metadata
-      // TODO: maybe have methods that return the path to card and path to model?
       std::stringstream msg;
       msg<<"saving model card for "<<card.GetRepoID()<<std::endl;
       wxLogDebug(wxString(msg.str()));
@@ -214,18 +244,17 @@ bool DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, Com
       msg = std::stringstream();
       msg<<"downloading model for "<<card.GetRepoID()<<std::endl;
       wxLogDebug(wxString(msg.str()));
-      network_manager::ResponsePtr response = mHFWrapper.DownloadModel(
-               card, card.GetRepoID(), wxFileName(GetRepoDir(card), "model.pt").GetFullPath().ToStdString(), 
-               onProgress, onCompleted);
+
+      network_manager::ResponsePtr response = mHFWrapper.DownloadModel(card, onProgress, installHandler);
+
+      // add response to a temporary map (in case of cancellation)
       mResponseMap[card.GetRepoID()] = response;
    }
    catch (const char *msg)
    {
       wxLogError(msg);
-      return false;
+      return;
    }
-
-   return true;
 }
 
 void DeepModelManager::Uninstall(ModelCard &card)
@@ -353,47 +382,18 @@ ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
 }
 
 network_manager::ResponsePtr HuggingFaceWrapper::DownloadModel
-(const ModelCard &card, const std::string &repoID, const std::string &path, 
- ProgressCallback onProgress, CompletionHandler onCompleted)
+(const ModelCard &card, ProgressCallback onProgress, CompletionHandler onCompleted)
 {
    // TODO: this is not raising an error for an invalid URL 
    // try adding a double slash anyuwhere to break it. 
    // its because huggingface returns 200s saying "Not Found"
-   std::string modelUrl = GetRootURL(repoID)  + "model.pt";
+   std::string modelUrl = GetRootURL(card.GetRepoID())  + "model.pt";
    
    std::stringstream msg;
    msg<<"downloading from "<<modelUrl<<std::endl;
    wxLogDebug(wxString(msg.str()));
 
-   CompletionHandler completionHandler = [path, onComplete = std::move(onCompleted), 
-                                          card](int httpCode, std::string body)
-   {
-      // looks like models can also return a 302 and succeed
-      if (!(httpCode == 200 || httpCode == 302))
-      {
-         // TODO: this error should be actually handled outside DownloadModel
-         // so it gets handled in the main thread
-         std::stringstream msg;
-         msg << "GET request failed. Error code: " << httpCode;
-         std::cerr<<msg.str()<<std::endl;
-         throw ModelManagerException(msg.str());
-      }
-      else
-      {  
-         std::istringstream modulestr(body);
-
-         DeepModel tmpModel = DeepModel();
-         ModelCard cardCopy = ModelCard(card);
-         tmpModel.SetCard(cardCopy);
-         tmpModel.Load(modulestr);
-         tmpModel.Save(path);
-
-         onComplete(httpCode, body);
-
-      }
-   };
-
-   auto response = doGet(modelUrl, completionHandler, onProgress);
+   auto response = doGet(modelUrl, onCompleted, onProgress);
    return response;
 }
 

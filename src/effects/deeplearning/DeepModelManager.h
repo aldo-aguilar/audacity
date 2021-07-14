@@ -64,9 +64,9 @@ public:
    RepoIDList FetchRepos();
 
    // download a model
-   audacity::network_manager::ResponsePtr DownloadModel(
-                     const ModelCard &card, const std::string &repoID, const std::string &path,
-                      ProgressCallback onProgress, CompletionHandler onCompleted);
+   audacity::network_manager::ResponsePtr DownloadModel(const ModelCard &card, 
+                                                        ProgressCallback onProgress, 
+                                                        CompletionHandler onCompleted);
 
 private:
    std::string mAPIEndpoint;
@@ -102,7 +102,9 @@ public:
    // download and install a deep learning model
    bool IsInstalled(ModelCard &card);
    bool IsInstalling(ModelCard &card);
-   bool Install(ModelCard &card, ProgressCallback onProgress, 
+
+   // may fail silently, check with IsInstalled()
+   void Install(ModelCard &card, ProgressCallback onProgress, 
                                  CompletionHandler onCompleted);
    void Uninstall(ModelCard &card);
    void CancelInstall(ModelCard &card);
