@@ -72,6 +72,7 @@ private:
    std::string mAPIEndpoint;
 };
 
+// TODO: what happens when a user is NOT connected to the internet?
 class DeepModelManager
 {
    // private! Use Get()

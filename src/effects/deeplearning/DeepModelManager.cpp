@@ -19,10 +19,10 @@
 
 using namespace audacity;
 
+// TODO: the manager is not thread safe? 
 DeepModelManager::DeepModelManager() : mSchema(ModelCard::CreateFromFile(kSchemaPath)),
                                        mCards(ModelCardCollection(mSchema))
 {
-
 }
 
 DeepModelManager::~DeepModelManager()
@@ -72,7 +72,7 @@ std::unique_ptr<DeepModel> DeepModelManager::GetModel(ModelCard &card)
    if (!IsInstalled(card))
    {
       wxASSERT(IsInstalled(card)); 
-      throw ModelManagerException("model is not loaded.")
+      throw ModelManagerException("model is not loaded.");
    }
 
    std::unique_ptr<DeepModel> model = std::make_unique<DeepModel>();
@@ -86,7 +86,6 @@ std::unique_ptr<DeepModel> DeepModelManager::GetModel(ModelCard &card)
 
    return model;
 }  
-
 void DeepModelManager::FetchCards(ProgressDialog *progress)
 {
    FetchInstalledCards();
@@ -136,14 +135,15 @@ void DeepModelManager::FetchCards(ProgressDialog *progress)
    }
 }
 
-void DeepModelManager::FetchInstalledCards(ProgressDialog *progress = NULL)
+void DeepModelManager::FetchInstalledCards(ProgressDialog *progress)
 {
-   wxString pattern = wxFileName(DLModelsDir(), "**/metadata.json").GetFullPath();
+   wxString glob = wxFileName(DLModelsDir(), "**").GetFullPath();
+   wxString pattern = wxFileName(glob, "*.json").GetFullPath();
    wxString cardF = wxFindFirstFile(pattern);
    size_t numCardsRead = 0;
 
    if (progress)
-      progress->SetMessage(XO("Fetching local models..."))
+      progress->SetMessage(XO("Fetching local models..."));
 
    while (!cardF.empty())
    {
@@ -152,7 +152,8 @@ void DeepModelManager::FetchInstalledCards(ProgressDialog *progress = NULL)
       ModelCard card;
       try
       {
-         card = ModelCard.CreateFromFile(cardF.ToStdString());
+         // TODO: this still throws a rapidjson assert if its not a valid json string i think
+         card = ModelCard::CreateFromFile(cardF.ToStdString());
       }
       catch (const ModelException &e)
       {
@@ -184,7 +185,7 @@ void DeepModelManager::FetchInstalledCards(ProgressDialog *progress = NULL)
                      (XO("Fetching &%s...").Format(repoId)));
 
       numCardsRead++;
-      f = wxFindNextFile();
+      cardF = wxFindNextFile();
    }
 }
 
@@ -278,16 +279,33 @@ RepoIDList HuggingFaceWrapper::FetchRepos()
    // TODO: handle exception in main thread
    CompletionHandler handler = [&repos](int httpCode, std::string body)
    {
-      // TODO: http code handling
-      ModelCard reposCard = ModelCard(body);
-      std::shared_ptr<const rapidjson::Document> reposDoc = reposCard.GetDoc();
+      if (!(httpCode == 200))
+      {
+         // TODO: http code handling
+         // how do we pass these on 
+          
+      }
+      else
+      {
+         ModelCard reposCard; 
+         try
+         {
+            reposCard = ModelCard(body);
+         }
+         catch (const ModelException &e)
+         {
+            // TODO error parsing response body
+         }
+         std::shared_ptr<const rapidjson::Document> reposDoc = reposCard.GetDoc();
 
-      for (rapidjson::Value::ConstValueIterator itr = reposDoc->Begin();
-                                                itr != reposDoc->End();
-                                                ++itr)
-         // TODO: need to raise an exception if we can't get the object 
-         // or modelId
-         repos.emplace_back(itr->GetObject()["modelId"].GetString());
+         for (rapidjson::Value::ConstValueIterator itr = reposDoc->Begin();
+                                                   itr != reposDoc->End();
+                                                   ++itr)
+            // TODO: need to raise an exception if we can't get the object 
+            // or modelId
+            repos.emplace_back(itr->GetObject()["modelId"].GetString());
+      }
+
    };
 
    doGet(query, handler);
