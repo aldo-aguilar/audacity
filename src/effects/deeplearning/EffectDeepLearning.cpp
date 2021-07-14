@@ -18,10 +18,6 @@
 #include <torch/script.h>
 
 #include <wx/range.h>
-// register event handlers
-// BEGIN_EVENT_TABLE(EffectSourceSep, wxEvtHandler)
-//    EVT_BUTTON(wxID_ANY, EffectSourceSep::OnLoadButton)
-// END_EVENT_TABLE()
 
 // ModelCardPanel
 
@@ -281,16 +277,6 @@ void EffectDeepLearning::SetModel(ModelCard card)
 
 // ModelCardPanel
 
-enum
-{
-   ID_INSTALLBUTTON = 10000,
-   ID_INSTALLSTATUS,
-   ID_INSTALLPROGRESS,
-   ID_MODELDESCRIPTION,
-   ID_MODELAUTHOR,
-   ID_MODELNAME
-};
-
 ModelCardPanel::ModelCardPanel(wxWindow *parent, wxWindowID winid, ModelCard card, 
                               EffectDeepLearning *effect)
     : wxPanelWrapper(parent, winid, wxDefaultPosition )
@@ -329,8 +315,7 @@ bool ModelCardPanel::TransferDataFromWindow()
 void ModelCardPanel::PopulateNameAndAuthor(ShuttleGui &S)
 {
    // {repo-name}
-   mModelName = S.Id(ID_MODELNAME)
-                    .AddVariableText(XO("%s")
+   mModelName = S.AddVariableText(XO("%s")
                                          .Format(mCard["name"].GetString()),
                                      false, wxLEFT);
    mModelName->SetFont(wxFont(wxFontInfo().Bold()));
@@ -339,8 +324,7 @@ void ModelCardPanel::PopulateNameAndAuthor(ShuttleGui &S)
    S.StartHorizontalLay(wxALIGN_LEFT, true);
    {
       S.AddVariableText(XO("by"));
-      mModelAuthor = S.Id(ID_MODELAUTHOR)
-                         .AddVariableText(XO("%s")
+      mModelAuthor = S.AddVariableText(XO("%s")
                                               .Format(mCard["author"].GetString()));
       mModelAuthor->SetFont(wxFont(wxFontInfo().Bold()));
    }
@@ -351,8 +335,7 @@ void ModelCardPanel::PopulateDescription(ShuttleGui &S)
 {
    // model description
    S.StartStatic(XO("Description"));
-   mModelDescription = S.Id(ID_MODELDESCRIPTION)
-                           .AddVariableText(XO("%s")
+   mModelDescription = S.AddVariableText(XO("%s")
                                                 .Format(wxString(mCard["description"].GetString())),
                                             false, wxLEFT);
    S.EndStatic();
