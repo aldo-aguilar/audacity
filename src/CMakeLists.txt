@@ -1023,14 +1023,7 @@ list( APPEND SOURCES
 #
 #
 list( APPEND HEADERS
-   ../include/audacity/EffectInterface.h
    ../include/audacity/Types.h
-   ../include/audacity/ConfigInterface.h
-   ../include/audacity/ModuleInterface.h
-   ../include/audacity/PluginInterface.h
-   ../include/audacity/ComponentInterface.h
-   ../include/audacity/EffectAutomationParameters.h
-   ../include/audacity/ImporterInterface.h
 )
 
 #
@@ -1072,7 +1065,7 @@ list( APPEND DEFINES
          __STDC_CONSTANT_MACROS
          STRICT
       >
-      $<$<BOOL:${USE_UPDATE_CHECK}>:
+      $<$<BOOL:${${_OPT}has_updates_check}>:
           HAVE_UPDATES_CHECK
       >
 )
@@ -1394,6 +1387,7 @@ if( "${CMAKE_GENERATOR}" MATCHES "Xcode|Visual Studio*" )
       USE_SOURCE_PERMISSIONS
       PATTERN "*.pdb" EXCLUDE
       PATTERN "*.ilk" EXCLUDE
+      PATTERN "*.dSYM" EXCLUDE
    )
 else()
    if( CMAKE_SYSTEM_NAME MATCHES "Darwin" )

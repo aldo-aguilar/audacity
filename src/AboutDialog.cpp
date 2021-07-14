@@ -74,6 +74,10 @@ hold information about one contributor to Audacity.
 #define REV_IDENT (XO("No revision identifier was provided").Translation())
 #endif
 
+#if defined(HAS_SENTRY_REPORTING) || defined(HAVE_UPDATES_CHECK) || defined(USE_BREAKPAD)
+#define HAS_PRIVACY_POLICY
+#endif
+
 // To substitute into many other translatable strings
 static const auto ProgramName =
    //XO("Audacity");
@@ -128,12 +132,12 @@ void AboutDialog::CreateCreditsList()
       XO("%s, graphics");
 
    // The Audacity Team: developers and support
-   AddCredit(wxT("James Crook"), developerFormat, roleTeamMember);
-   AddCredit(wxT("Roger Dannenberg"), coFounderFormat, roleTeamMember);
-   AddCredit(wxT("Steve Daulton"), roleTeamMember);
    AddCredit(wxT("Anton Gerasimov"), developerFormat, roleTeamMember);
-   AddCredit(wxT("Greg Kozikowski"), documentationAndSupportFormat, roleTeamMember);
+   AddCredit(wxT("Jouni Helminen"), roleTeamMember);
+   AddCredit(wxT("Peter Jonas"), developerFormat, roleTeamMember);
+   AddCredit(wxT("Martin Keary"), roleTeamMember);
    AddCredit(wxT("Paul Licameli"), developerFormat, roleTeamMember);
+   AddCredit(wxT("Anita Sudan"), roleTeamMember);
    AddCredit(wxT("Vitaly Sverchinsky"), developerFormat, roleTeamMember);
    AddCredit(wxT("Dmitry Vedenko"), developerFormat, roleTeamMember);
 
@@ -149,11 +153,15 @@ void AboutDialog::CreateCreditsList()
    AddCredit(wxT("Matt Brubeck"), developerFormat, roleEmeritusTeam);
    AddCredit(wxT("Arturo \"Buanzo\" Busleiman"), sysAdminFormat, roleEmeritusTeam);
    AddCredit(wxT("Michael Chinen"), developerFormat, roleEmeritusTeam);
+   AddCredit(wxT("James Crook"), developerFormat, roleEmeritusTeam);
+   AddCredit(wxT("Roger Dannenberg"), coFounderFormat, roleEmeritusTeam);
+   AddCredit(wxT("Steve Daulton"), roleEmeritusTeam);
    AddCredit(wxT("Al Dimond"), developerFormat, roleEmeritusTeam);
    AddCredit(wxT("Benjamin Drung"), developerFormat, roleEmeritusTeam);
    AddCredit(wxT("Joshua Haberman"), developerFormat, roleEmeritusTeam);
    AddCredit(wxT("Ruslan Ijbulatov"), developerFormat, roleEmeritusTeam);
    AddCredit(wxT("Vaughan Johnson"), developerFormat, roleEmeritusTeam);
+   AddCredit(wxT("Greg Kozikowski"), documentationAndSupportFormat, roleEmeritusTeam);
    AddCredit(wxT("Leland Lucius"), developerFormat, roleEmeritusTeam);
    AddCredit(wxT("Dominic Mazzoni"), coFounderFormat, roleEmeritusTeam);
    AddCredit(wxT("Markus Meyer"), developerFormat, roleEmeritusTeam);
@@ -401,7 +409,7 @@ visit our %s.")
       << wxT("Customised version of the Audacity free, open source, cross-platform software " )
       << wxT("for recording and editing sounds.")
       << wxT("<p><br>&nbsp; &nbsp; <b>Audacity<sup>&reg;</sup></b> software is copyright &copy; 1999-2021 Audacity Team.<br>")
-      << wxT("&nbsp; &nbsp; The name <b>Audacity</b> is a registered trademark of Dominic Mazzoni.<br><br>")
+      << wxT("&nbsp; &nbsp; The name <b>Audacity</b> is a registered trademark.<br><br>")
 
 #else
       << XO("<h3>")
@@ -825,7 +833,11 @@ void AboutDialog::PopulateInformationPage( ShuttleGui & S )
 
 void AboutDialog::PopulateLicensePage( ShuttleGui & S )
 {
-   S.StartNotebookPage( XO("GPL License") );
+#if defined(HAS_PRIVACY_POLICY)
+   S.StartNotebookPage(XC("Legal", "about dialog"));
+#else
+   S.StartNotebookPage(XO("GPL License"));
+#endif
    S.StartVerticalLay(1);
    HtmlWindow *html = safenew LinkingHtmlWindow(S.GetParent(), -1,
                                          wxDefaultPosition,
@@ -838,7 +850,9 @@ void AboutDialog::PopulateLicensePage( ShuttleGui & S )
 // better proportionally spaced.
 //
 // The GPL is not to be translated....
-   wxString PageText= FormatHtmlText(
+   
+
+constexpr auto GPL_TEXT = 
 wxT("		    <center>GNU GENERAL PUBLIC LICENSE\n</center>")
 wxT("		       <center>Version 2, June 1991\n</center>")
 wxT("<p><p>")
@@ -1120,7 +1134,37 @@ wxT("OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED\n
 wxT("TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY\n")
 wxT("YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER\n")
 wxT("PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE\n")
-wxT("POSSIBILITY OF SUCH DAMAGES.\n"));
+wxT("POSSIBILITY OF SUCH DAMAGES.\n");
+
+#if defined(HAS_PRIVACY_POLICY)
+   /* i18n-hint: For "About Audacity...": Title for Privacy Policy section */
+   const auto privacyPolicyTitle = XC("PRIVACY POLICY", "about dialog");
+
+   /* i18n-hint: For "About Audacity...": Title of hyperlink to the privacy policy. This is an object of "See". */
+   const auto privacyPolicyURLText = XO("our Privacy Policy");
+
+   /* i18n-hint: %s will be replaced with "our Privacy Policy" */
+   const auto privacyPolicyText = XO(
+      "App update checking and error reporting require network access. "
+      "These features are optional. See %s "
+         "for more information.")
+         .Format(
+            Verbatim(
+               "[[https://www.audacityteam.org/about/desktop-privacy-notice/|%s]]")
+               .Format(privacyPolicyURLText));
+
+   const wxString privacyPolicyHTML = wxString(
+      wxT("<center>") + 
+      privacyPolicyTitle.Translation() + 
+      wxT("</center><p>") +
+      privacyPolicyText.Translation() + 
+      wxT("</p><br/><br/>")
+   );
+
+   wxString PageText = FormatHtmlText(privacyPolicyHTML + GPL_TEXT);
+#else
+   wxString PageText = FormatHtmlText(GPL_TEXT);
+#endif
 
    html->SetPage( PageText );
 

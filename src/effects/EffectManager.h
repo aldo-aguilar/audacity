@@ -16,7 +16,7 @@
 #include <vector>
 
 #include <unordered_map>
-#include "audacity/EffectInterface.h"
+#include "EffectInterface.h"
 #include "Identifier.h"
 
 class AudacityCommand;
@@ -96,7 +96,7 @@ public:
    TranslatableString GetCommandName(const PluginID & ID);
    CommandID GetCommandIdentifier(const PluginID & ID);
    TranslatableString GetCommandDescription(const PluginID & ID);
-   wxString GetCommandUrl(const PluginID & ID);
+   ManualPageID GetCommandUrl(const PluginID & ID);
    TranslatableString GetCommandTip(const PluginID & ID);
    // flags control which commands are included.
    void GetCommandDefinition(const PluginID & ID, const CommandContext & context, int flags);
