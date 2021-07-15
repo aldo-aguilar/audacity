@@ -201,10 +201,31 @@ void DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, Com
    if (IsInstalled(card))
       return ;
 
+   ProgressCallback progressHandler(
+   [this, card, handler {std::move(onProgress)}](int64_t current, int64_t expected)
+   {
+      // if the install has been cancelled, bail
+      // if we don't bail early, then calling the handler will 
+      // segfault.
+      ModelCard cardCopy = ModelCard(card);
+      if (!this->IsInstalling(cardCopy))
+         return;
+
+      return handler(current, expected);
+   }
+   );
+
    // set up the install handler
    CompletionHandler installHandler(
    [this, card, handler {std::move(onCompleted)} ](int httpCode, std::string body)
    {
+      // if the install has been cancelled, bail
+      // if we don't bail early, then calling the handler will 
+      // segfault.
+      ModelCard cardCopy = ModelCard(card);
+      if (!this->IsInstalling(cardCopy))
+         return;
+
       std::string repoId = card.GetRepoID(); 
       std::string path = wxFileName(this->GetRepoDir(card), "model.pt").GetFullPath().ToStdString();
 
@@ -214,7 +235,6 @@ void DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, Com
          std::istringstream modulestr(body);
 
          DeepModel tmpModel = DeepModel();
-         ModelCard cardCopy = ModelCard(card);
          tmpModel.SetCard(cardCopy);
          try
          {
@@ -230,6 +250,9 @@ void DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, Com
 
       // let the caller handle this
       handler(httpCode, body);
+
+      // get rid of the cached response
+      this->mResponseMap.erase(repoId);
    });
 
    // download the model
@@ -245,7 +268,7 @@ void DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, Com
       msg<<"downloading model for "<<card.GetRepoID()<<std::endl;
       wxLogDebug(wxString(msg.str()));
 
-      network_manager::ResponsePtr response = mHFWrapper.DownloadModel(card, onProgress, installHandler);
+      network_manager::ResponsePtr response = mHFWrapper.DownloadModel(card, progressHandler, installHandler);
 
       // add response to a temporary map (in case of cancellation)
       mResponseMap[card.GetRepoID()] = response;
@@ -259,18 +282,22 @@ void DeepModelManager::Install(ModelCard &card, ProgressCallback onProgress, Com
 
 void DeepModelManager::Uninstall(ModelCard &card)
 {
-   if (!IsInstalled(card))
-      return;
 
    wxRemoveFile(wxFileName(GetRepoDir(card), "model.pt").GetFullPath());
    wxRemoveFile(wxFileName(GetRepoDir(card), "metadata.json").GetFullPath());
    
-   wxFileName(GetRepoDir(card)).RemoveLastDir();
+   wxRmDir(wxFileName(GetRepoDir(card)).GetFullPath());
+   
+}
+
+bool DeepModelManager::IsInstalling(ModelCard &card)
+{
+   return !(mResponseMap.find(card.GetRepoID()) == mResponseMap.end());
 }
 
 void DeepModelManager::CancelInstall(ModelCard &card)
 {
-   if (mResponseMap.find(card.GetRepoID()) == mResponseMap.end())
+   if (!IsInstalling(card))
     {
       // should never really reach here (can't cancel an install that's not ongoing)
       wxASSERT(false);

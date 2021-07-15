@@ -47,6 +47,20 @@ void EffectDeepLearning::End()
    // TODO:  how to clean up card panels?
    // release model
    mModel.reset();
+
+   // MANAGER: cleanup all downloads
+   // could I do this from within the manager using the response pointers?
+   DeepModelManager &manager = DeepModelManager::Get();
+
+   for (auto const& pair : mPanels)
+   {
+      ModelCard card = pair.second->GetCard();
+      if (manager.IsInstalling(card))
+         manager.CancelInstall(card);
+   } 
+
+   // clean up panels
+   mPanels.clear();
 }
 
 bool EffectDeepLearning::Process()
@@ -235,8 +249,9 @@ void EffectDeepLearning::PopulateOrExchange(ShuttleGui &S)
          {
             // auto panel = std::make_unique<ModelCardPanel>(scroller, wxID_ANY, card);
             std::unique_ptr<ModelCardPanel> panel = std::make_unique<ModelCardPanel>(parent, wxID_ANY, card, this);
+            std::string repoId = card.GetRepoID();
             panel->PopulateOrExchange(S);
-            mPanels.push_back(std::move(panel));
+            mPanels[repoId] = std::move(panel);
             // S.Prop(1).AddWindow(panel);
          }
       }
@@ -506,7 +521,7 @@ void ModelCardPanel::OnCancelInstall(wxCommandEvent &event)
 }
 
 // TODO: this is good, but still hangs on "installing"
-// even when you turn of the connection
+// even when you turn off the connection
 void ModelCardPanel::OnInstall(wxCommandEvent &event)
 {
    DeepModelManager &manager = DeepModelManager::Get();
@@ -531,7 +546,8 @@ void ModelCardPanel::OnInstall(wxCommandEvent &event)
    });
 
    CompletionHandler onInstallDone([this, &manager](int httpCode, std::string responseBody)
-   {  this->CallAfter(
+   {  
+      this->CallAfter(
          [this, httpCode, &manager]()
          {
             if (httpCode == 200 || httpCode == 302)
@@ -563,7 +579,7 @@ void ModelCardPanel::OnInstall(wxCommandEvent &event)
 
       // TODO: since this is done in another thread, how do I catch an error, like
       // losing the connection in the middle of a download? 
-      manager.Install(mCard, onProgress, onInstallDone);
+      manager.Install(mCard, std::move(onProgress), std::move(onInstallDone));
    }
 }
 

@@ -96,7 +96,7 @@ private:
 private:
    ModelCard mCard;
 
-   std::vector<std::unique_ptr<ModelCardPanel>> mPanels;
+   std::map<std::string, std::unique_ptr<ModelCardPanel>> mPanels;
 
    wxStaticText *mModelDesc;
 };
@@ -117,6 +117,8 @@ public:
    void OnUninstall(wxCommandEvent &event);
 
    void OnEnable(wxCommandEvent &event);
+
+   ModelCard GetCard() const { return mCard; }
 
 private:
 
