@@ -220,7 +220,7 @@ ModelCardCollection ModelCardCollection::Filter(ModelCardFilter filter)
 
 ModelCardCollection ModelCardCollection::EmptyCopy()
 {
-   ModelCardCollection that = EmptyCopy();
+   ModelCardCollection that(mSchema);
    that.mCards = std::vector<ModelCard>(mCards.size());
    return that;
 }

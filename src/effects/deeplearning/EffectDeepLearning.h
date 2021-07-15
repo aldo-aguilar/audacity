@@ -31,6 +31,7 @@ using BlockIndex = std::pair<sampleCount, size_t>;
 class ShuttleGui;
 class ModelCardPanel;
 
+
 class EffectDeepLearning /* not final */ : public Effect
 {
 public:

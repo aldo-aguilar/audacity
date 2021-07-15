@@ -312,6 +312,15 @@ void DeepModelManager::CancelInstall(ModelCard &card)
    }
 }
 
+ModelCardCollection DeepModelManager::GetCards(std::string id)
+{
+   ModelCardFilter filterId([=](const ModelCard &card)
+   {
+      return card["effect"].GetString() == id;
+   });
+   return mCards.Filter(filterId);
+}
+
 // HuggingFaceWrapper Implementation
 
 std::string HuggingFaceWrapper::GetRootURL(const std::string &repoID)

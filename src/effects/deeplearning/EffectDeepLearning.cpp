@@ -245,7 +245,7 @@ void EffectDeepLearning::PopulateOrExchange(ShuttleGui &S)
       {
          wxWindow *parent = S.GetParent();
 
-         for (auto &card : manager.GetCards())
+         for (auto &card : manager.GetCards(GetDeepEffectID()))
          {
             // auto panel = std::make_unique<ModelCardPanel>(scroller, wxID_ANY, card);
             std::unique_ptr<ModelCardPanel> panel = std::make_unique<ModelCardPanel>(parent, wxID_ANY, card, this);

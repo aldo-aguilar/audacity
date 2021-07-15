@@ -111,6 +111,8 @@ public:
 
    ModelCardCollection GetCards() { return mCards; }
 
+   ModelCardCollection GetCards(std::string deepEffectID);
+
 private:
    ModelCard mSchema;
    ModelCardCollection mCards;
