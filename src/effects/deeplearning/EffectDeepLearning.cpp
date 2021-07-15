@@ -386,7 +386,7 @@ void ModelCardPanel::PopulateInstallCtrls(ShuttleGui &S)
    {
       // add a progress gauge for downloads, but hide it
       mInstallProgressGauge = safenew wxGauge(S.GetParent(), wxID_ANY, 100); // TODO:  sizing
-      mInstallProgressGauge->SetSize(wxSize(120, 20));
+      mInstallProgressGauge->SetSize(wxSize(80, 20));
       S.AddWindow(mInstallProgressGauge);
 
       S.StartHorizontalLay(wxCENTER, true);
@@ -482,7 +482,7 @@ void ModelCardPanel::SetInstallStatus(InstallStatus status)
       this->mInstallButton->SetLabel("Cancel");
       this->mInstallButton->Connect(wxEVT_COMMAND_BUTTON_CLICKED, 
                                  wxCommandEventHandler(ModelCardPanel::OnCancelInstall), NULL, this);
-      this->mInstallProgressGauge->Show();
+      // this->mInstallProgressGauge->Show();
 
       this->mInstallStatusText->SetLabel("installing...");
       statusColor = *wxBLACK; 
@@ -492,7 +492,7 @@ void ModelCardPanel::SetInstallStatus(InstallStatus status)
       this->mInstallButton->SetLabel("Install");
       this->mInstallButton->Connect(wxEVT_COMMAND_BUTTON_CLICKED, 
                                  wxCommandEventHandler(ModelCardPanel::OnInstall), NULL, this);
-      this->mInstallProgressGauge->Hide();
+      // this->mInstallProgressGauge->Hide();
 
       this->mInstallStatusText->SetLabel("uninstalled");
       statusColor = *wxRED;
