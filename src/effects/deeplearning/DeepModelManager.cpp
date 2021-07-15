@@ -374,13 +374,14 @@ ModelCard HuggingFaceWrapper::GetCard(const std::string &repoID)
    std::string modelCardUrl = GetRootURL(repoID) + "metadata.json";
    ModelCard card = ModelCard();
    // TODO: how do you handle an exception inside a thread, like this one? 
-   CompletionHandler completionHandler = [repoID, &card](int httpCode, std::string body)
+   CompletionHandler completionHandler = [modelCardUrl, repoID, &card](int httpCode, std::string body)
    { 
       if (!(httpCode == 200))
       {
          std::stringstream msg;
-         msg << "GET request failed. Error code: " << httpCode;
-         throw ModelManagerException(msg.str());
+         msg << "GET request failed for url " << modelCardUrl
+                 << ". Error code: " << httpCode << std::endl;
+         wxLogError(wxString(msg.str()));
       }
       else
       {
