@@ -61,14 +61,14 @@ TranslatableString EffectSourceSep::GetDescription()
 
 ManualPageID EffectSourceSep::ManualPage()
 {
-   return L"Source Separation"; 
+   return L"Source_Separation"; 
 }
 
 // EffectDefinitionInterface implementation
 
 EffectType EffectSourceSep::GetType()
 {
-   return EffectTypeTool;
+   return EffectTypeProcess;
 }
 
 // Effect implementation
