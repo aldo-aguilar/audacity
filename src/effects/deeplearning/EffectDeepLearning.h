@@ -30,6 +30,7 @@ using BlockIndex = std::pair<sampleCount, size_t>;
 
 class ShuttleGui;
 class ModelCardPanel;
+class ModelManagerPanel;
 
 
 class EffectDeepLearning /* not final */ : public Effect
@@ -39,13 +40,10 @@ public:
 
    // Effect implementation
 
-   // bool Startup() override;
    bool Init() override;
    void End() override;
    bool Process() override;
    void PopulateOrExchange(ShuttleGui & S) override;
-   // bool TransferDataToWindow() override;
-   // bool TransferDataFromWindow() override;
 
    // DeepLearningEffect implementation
 
@@ -54,9 +52,10 @@ public:
 
    void SetModel(ModelCard card);
 
-protected:
    // TODO: write instructions
    virtual std::string GetDeepEffectID() = 0;
+   
+protected:
 
    // gets the number of channels in a (possibly multichannel) track
    size_t GetNumChannels(WaveTrack *leader){return TrackList::Channels(leader).size();}
@@ -91,15 +90,26 @@ protected:
    std::unique_ptr<DeepModel> mModel;
 
 private:
-   // handlers
-   void OnLoadButton(wxCommandEvent &event);
-
-private:
    ModelCard mCard;
 
-   std::map<std::string, std::unique_ptr<ModelCardPanel>> mPanels;
-
+   std::unique_ptr<ModelManagerPanel> mManagerPanel;
    wxStaticText *mModelDesc;
+};
+
+class ModelManagerPanel final : public wxPanelWrapper
+{
+public:
+   ModelManagerPanel(wxWindow *parent, EffectDeepLearning *effect);
+
+   void PopulateOrExchange(ShuttleGui & S);
+   void Clear();
+
+private:
+   wxScrolledWindow *mScroller;
+
+   std::map<std::string, std::unique_ptr<ModelCardPanel>> mPanels;
+   EffectDeepLearning *mEffect;
+   
 };
 
 class ModelCardPanel final : public wxPanelWrapper
