@@ -33,11 +33,6 @@ bool EffectDeepLearning::Init()
 
    manager.FetchCards(progress.get());
 
-   // std::string effectid = GetDeepEffectID(); //TODO: maybe we want an enum for the effect id?
-   // mCard = manager.GetCached(effectid);
-   // mModel = manager.GetModel(mCard);
-
-   // TODO: except handling
    mModel = std::make_unique<DeepModel>();
    return true;
 }
@@ -48,19 +43,7 @@ void EffectDeepLearning::End()
    // release model
    mModel.reset();
 
-   // MANAGER: cleanup all downloads
-   // could I do this from within the manager using the response pointers?
-   DeepModelManager &manager = DeepModelManager::Get();
-
-   for (auto const& pair : mPanels)
-   {
-      ModelCard card = pair.second->GetCard();
-      if (manager.IsInstalling(card))
-         manager.CancelInstall(card);
-   } 
-
-   // clean up panels
-   mPanels.clear();
+   mManagerPanel->Clear();
 }
 
 bool EffectDeepLearning::Process()
@@ -240,22 +223,10 @@ void EffectDeepLearning::PopulateOrExchange(ShuttleGui &S)
    S.StartVerticalLay(wxCENTER, true);
    {
 
-      wxScrolledWindow *scroller = S.Style(wxVSCROLL | wxTAB_TRAVERSAL)
-                                       .StartScroller();
-      {
-         wxWindow *parent = S.GetParent();
-
-         for (auto &card : manager.GetCards(GetDeepEffectID()))
-         {
-            // auto panel = std::make_unique<ModelCardPanel>(scroller, wxID_ANY, card);
-            std::unique_ptr<ModelCardPanel> panel = std::make_unique<ModelCardPanel>(parent, wxID_ANY, card, this);
-            std::string repoId = card.GetRepoID();
-            panel->PopulateOrExchange(S);
-            mPanels[repoId] = std::move(panel);
-            // S.Prop(1).AddWindow(panel);
-         }
-      }
-      S.EndScroller();
+      mManagerPanel.reset(
+         safenew ModelManagerPanel(S.GetParent(), this));
+      
+      mManagerPanel->PopulateOrExchange(S);
 
       S.StartHorizontalLay(wxCENTER, false);
       {
@@ -288,6 +259,48 @@ void EffectDeepLearning::SetModel(ModelCard card)
 
       mModelDesc->SetLabel(XO("%s is Ready").Format(card.GetRepoID()).Translation());
    }  
+}
+
+// ModelManagerPanel
+
+ModelManagerPanel::ModelManagerPanel(wxWindow *parent, EffectDeepLearning *effect)
+{
+   mEffect = effect;
+}
+
+void ModelManagerPanel::PopulateOrExchange(ShuttleGui & S)
+{
+   DeepModelManager &manager = DeepModelManager::Get();
+
+    mScroller = S.Style(wxVSCROLL | wxTAB_TRAVERSAL)
+      .StartScroller();
+   {
+      wxWindow *parent = S.GetParent();
+
+      for (auto &card : manager.GetCards(mEffect->GetDeepEffectID()))
+      {
+         auto panel = std::make_unique<ModelCardPanel>(parent, wxID_ANY, card, mEffect);
+         std::string repoId = card.GetRepoID();
+         panel->PopulateOrExchange(S);
+         mPanels[repoId] = std::move(panel);
+      }
+   }
+   S.EndScroller();
+}
+
+void ModelManagerPanel::Clear()
+{
+   DeepModelManager &manager = DeepModelManager::Get();
+
+   for (auto const& pair : mPanels)
+   {
+      ModelCard card = pair.second->GetCard();
+      if (manager.IsInstalling(card))
+         manager.CancelInstall(card);
+   } 
+
+   // clean up panels
+   mPanels.clear();
 }
 
 // ModelCardPanel
