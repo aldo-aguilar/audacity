@@ -89,10 +89,10 @@ protected:
    // the deep model itself
    std::unique_ptr<DeepModel> mModel;
 
-private:
    ModelCard mCard;
 
    std::unique_ptr<ModelManagerPanel> mManagerPanel;
+   
    wxStaticText *mModelDesc;
 };
 
