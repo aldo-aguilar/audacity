@@ -46,8 +46,7 @@ is time to refresh some aspect of the screen.
 
 #include "TrackPanel.h"
 
-
-
+#include <wx/app.h>
 #include <wx/setup.h> // for wxUSE_* macros
 
 #include "AdornedRulerPanel.h"
@@ -1273,10 +1272,12 @@ struct VRulersAndChannels final : TrackPanelGroup {
 //Simply fills area using specified brush and outlines borders
 class EmptyPanelRect final : public CommonTrackPanelCell
 {
+   //Required to keep selection behaviour similar to others
+   std::shared_ptr<Track> mTrack;
    int mFillBrushName;
 public:
-   explicit EmptyPanelRect(int fillBrushName)
-      : mFillBrushName(fillBrushName)
+   explicit EmptyPanelRect(const std::shared_ptr<Track>& track, int fillBrushName)
+      : mTrack(track), mFillBrushName(fillBrushName)
    {
    }
 
@@ -1296,7 +1297,7 @@ public:
 
    std::shared_ptr<Track> DoFindTrack() override
    {
-       return {};
+       return mTrack;
    }
 
    std::vector<UIHandlePtr> HitTest(const TrackPanelMouseState& state, const AudacityProject* pProject)
@@ -1342,8 +1343,11 @@ struct ChannelGroup final : TrackPanelGroup {
          auto &view = TrackView::Get( *channel );
          if (auto affordance = view.GetAffordanceControls())
          {
+            auto panelRect = std::make_shared<EmptyPanelRect>(
+               channel->shared_from_this(),
+               channel->GetSelected() ? clrTrackInfoSelected : clrTrackInfo);
             Refinement hgroup {
-               std::make_pair(rect.GetLeft() + 1, std::make_shared<EmptyPanelRect>(channel->GetSelected() ? clrTrackInfoSelected : clrTrackInfo)),
+               std::make_pair(rect.GetLeft() + 1, panelRect),
                std::make_pair(mLeftOffset, affordance)
             };
             refinement.emplace_back(yy, std::make_shared<HorizontalGroup>(hgroup));
@@ -1368,6 +1372,34 @@ struct ChannelGroup final : TrackPanelGroup {
 
       return { Axis::Y, std::move( refinement ) };
    }
+
+   void Draw(TrackPanelDrawingContext& context, const wxRect& rect, unsigned iPass) override
+   {
+      TrackPanelGroup::Draw(context, rect, iPass);
+      if (iPass == TrackArtist::PassFocus && mpTrack->IsSelected())
+      {
+         const auto channels = TrackList::Channels(mpTrack.get());
+         const auto pLast = *channels.rbegin();
+         wxCoord yy = rect.GetTop();
+         for (auto channel : channels)
+         {
+            auto& view = TrackView::Get(*channel);
+            auto height = view.GetHeight();
+            if (auto affordance = view.GetAffordanceControls())
+            {
+               height += kAffordancesAreaHeight;
+            }
+            auto trackRect = wxRect(
+               mLeftOffset,
+               yy,
+               rect.GetRight() - mLeftOffset,
+               height - kSeparatorThickness);
+            TrackArt::DrawCursor(context, trackRect, mpTrack.get());
+            yy += height;
+         }
+      }
+   }
+
    std::shared_ptr< Track > mpTrack;
    wxCoord mLeftOffset;
 };
