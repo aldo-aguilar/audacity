@@ -39,13 +39,14 @@ void ModelManagerPanel::PopulateOrExchange(ShuttleGui & S)
 
       mScroller = S.Style(wxVSCROLL | wxTAB_TRAVERSAL)
          .StartScroller();
-      {}
+      {
+      }
       S.EndScroller();
-
       // TODO: this is a temporary hack. The scroller should
       // dynamicallyu adjust its size to fit the contents.
       mScroller->SetVirtualSize(wxSize(1000, 400));
-      mScroller->SetMinSize(wxSize(1000, 300)); 
+      mScroller->SetMinSize(wxSize(1000, 400)); 
+
    }
    S.EndVerticalLay();
 
@@ -82,6 +83,8 @@ void ModelManagerPanel::AddCard(ModelCardHolder card)
    {
       sizer->SetSizeHints(mScroller);
    }
+   mScroller->FitInside();
+   mScroller->GetParent()->Layout();
 }
 
 void ModelManagerPanel::FetchCards()
@@ -96,13 +99,6 @@ void ModelManagerPanel::FetchCards()
             if (success)
             {
                this->AddCard(card);
-               
-               // TODO: the scroller is NOT activated by default
-               // the user has to resize the window to see it.
-               // use this to debug the scroller
-               // ModelCardHolder card2 = std::make_shared<ModelCard>(*card);
-               // card2->author("pipi");
-               // this->AddCard(card2);
             }
          }
       );
