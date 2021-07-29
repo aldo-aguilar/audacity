@@ -550,6 +550,16 @@ list( APPEND SOURCES
          effects/vamp/VampEffect.h
       >
 
+      # Deep Learning
+      # TODO: need to add a conditional for networking
+      $<$<BOOL:${USE_LIBTORCH}>:
+         effects/deeplearning/DeepModel.cpp
+         effects/deeplearning/DeepModel.h
+         effects/deeplearning/ModelCard.cpp
+         effects/deeplearning/ModelCard.h
+
+      >
+
       # Export
 
       export/Export.cpp
@@ -1059,6 +1069,8 @@ list( APPEND LIBRARIES
       libsndfile
       portaudio-v19
       sqlite
+      $<$<BOOL:${USE_LIBTORCH}>:libtorch>
+      $<$<BOOL:${USE_LIBTORCH}>:RapidJSON::RapidJSON>
       $<$<BOOL:${${_OPT}has_crashreports}>:crashreports>
       $<$<BOOL:${USE_FFMPEG}>:ffmpeg>
       $<$<BOOL:${USE_LIBID3TAG}>:libid3tag::libid3tag>
