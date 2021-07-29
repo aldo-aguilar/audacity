@@ -213,6 +213,16 @@ if( ${_OPT}has_sentry_reporting OR ${_OPT}use_libtorch)
    )
 endif()
 
+if( ${_OPT}use_libtorch )
+   add_conan_lib(
+      Torch
+      libtorch-binary/1.8.1
+      OPTION_NAME libtorch
+      HAS_ONLY_DEBUG_RELEASE
+      FIND_PACKAGE_OPTIONS
+   )
+endif()
+
 set_conan_vars_to_parent()
 
 # Required libraries
@@ -238,4 +248,3 @@ addlib( portsmf            portsmf     PORTSMF     NO    YES   "portSMF >= 0.1" 
 addlib( libsbsms           sbsms       SBSMS       NO    YES   "sbsms >= 2.2.0" )
 addlib( soundtouch         soundtouch  SOUNDTOUCH  NO    YES   "soundtouch >= 1.7.1" )
 addlib( twolame            twolame     LIBTWOLAME  NO    YES   "twolame >= 0.3.13" )
-addlib( libtorch           libtorch    LIBTORCH    NO    NO     "" )
