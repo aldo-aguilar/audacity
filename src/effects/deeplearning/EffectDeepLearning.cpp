@@ -181,12 +181,12 @@ torch::Tensor EffectDeepLearning::BuildMultichannelTensor(WaveTrack *leader, flo
       channelStack.emplace_back(
           BuildMonoTensor(channel, buffer, start, len).clone());
 
-   return torch::stack(channelStack);
+   return torch::cat(channelStack, 0);
 }
 
-torch::Tensor EffectDeepLearning::ForwardPass(torch::Tensor input)
+torch::jit::IValue EffectDeepLearning::ForwardPass(torch::Tensor input)
 {
-   torch::Tensor output;
+   torch::jit::IValue output;
    try
    {
       output = mModel->Forward(input);

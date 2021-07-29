@@ -15,6 +15,7 @@
 #include <torch/script.h>
 #include <torch/torch.h>
 
+#include <tuple>
 #include "../../WaveTrack.h"
 #include "../../WaveClip.h"
 
@@ -133,7 +134,7 @@ torch::Tensor DeepModel::Resample(const torch::Tensor &waveform, int sampleRateI
 }
 
 // forward pass through the model!
-torch::Tensor DeepModel::Forward(const torch::Tensor &waveform)
+torch::jit::IValue DeepModel::Forward(const torch::Tensor &waveform)
 {
    torch::NoGradGuard no_grad;
    if (!mLoaded) throw ModelException("Attempted forward pass while model is not loaded."
@@ -143,17 +144,33 @@ torch::Tensor DeepModel::Forward(const torch::Tensor &waveform)
    std::vector<torch::jit::IValue> inputs = {waveform};
 
    // forward pass!
-   torch::Tensor output;
+   torch::jit::IValue output;
    try
    {
-      output = mModel->forward(inputs).toTensor();
+      output = mModel->forward(inputs);
    }
    catch (const std::exception &e)
    {
       throw ModelException(e.what());
    }
-   // make tensor contiguous to return to track
-   output = output.contiguous();
 
    return output;
+}
+
+torch::Tensor DeepModel::ToTensor(const torch::jit::IValue &output)
+{
+   return output.toTensor().contiguous();
+}
+
+// forward pass through the model!
+TensorWithTimestamps DeepModel::ToTimestamps(const torch::jit::IValue &output)
+{
+   // forward pass!
+   auto tupleOutput = output.toTuple();
+
+   // seperate the tuple into its components
+   torch::Tensor modelOutput = tupleOutput->elements()[0].toTensor();
+   torch::Tensor timestamps = tupleOutput->elements()[1].toTensor();
+
+   return TensorWithTimestamps(modelOutput, timestamps);
 }

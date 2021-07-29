@@ -23,7 +23,10 @@
 #include <torch/script.h>
 #include <torch/torch.h>
 
+
+
 using ModulePtr = std::unique_ptr<torch::jit::script::Module>;
+using TensorWithTimestamps = std::tuple<torch::Tensor, torch::Tensor>;
 
 class ModelException : public std::exception
 {
@@ -67,7 +70,10 @@ public:
    // @execsafety: strong (may throw if model is not loaded or 
    // forward pass fails)
    // waveform should be shape (channels, samples)
-   torch::Tensor Forward(const torch::Tensor &waveform);
+   torch::jit::IValue Forward(const torch::Tensor &waveform);
+
+   torch::Tensor ToTensor(const torch::jit::IValue &output);
+   TensorWithTimestamps ToTimestamps(const torch::jit::IValue &output);
 
 private:
    ModulePtr mModel;

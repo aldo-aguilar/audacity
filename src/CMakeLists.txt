@@ -573,6 +573,8 @@ list( APPEND SOURCES
       
          effects/SourceSep.cpp 
          effects/SourceSep.h
+         effects/Labeler.cpp
+         effects/Labeler.h
       >
 
       # Export
