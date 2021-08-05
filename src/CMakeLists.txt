@@ -551,7 +551,7 @@ list( APPEND SOURCES
       >
 
       # Deep Learning
-      $<$<AND:$<BOOL:${USE_LIBTORCH}>,$<BOOL:${${_OPT}has_networking}>>:
+      $<$<BOOL:${${_OPT}has_deeplearning}>:
          effects/deeplearning/DeepModel.cpp
          effects/deeplearning/DeepModel.h
          effects/deeplearning/ModelCard.cpp
@@ -1045,7 +1045,7 @@ list( APPEND DEFINES
           HAVE_UPDATES_CHECK
       >
 
-      $<$<BOOL:${USE_LIBTORCH}>:
+      $<$<BOOL:${${_OPT}has_deeplearning}>:
          HAVE_LIB_TORCH
       >
 )
@@ -1082,8 +1082,8 @@ list( APPEND LIBRARIES
       libsndfile
       portaudio-v19
       sqlite
-      $<$<BOOL:${USE_LIBTORCH}>:Torch::Torch>
-      $<$<BOOL:${USE_LIBTORCH}>:RapidJSON::RapidJSON>
+      $<$<BOOL:${${_OPT}has_deeplearning}>:Torch::Torch>
+      $<$<BOOL:${${_OPT}has_deeplearning}>:RapidJSON::RapidJSON>
       $<$<BOOL:${${_OPT}has_crashreports}>:crashreports>
       $<$<BOOL:${USE_FFMPEG}>:ffmpeg>
       $<$<BOOL:${USE_LIBID3TAG}>:libid3tag::libid3tag>
