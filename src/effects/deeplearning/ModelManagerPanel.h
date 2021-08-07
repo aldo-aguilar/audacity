@@ -7,6 +7,7 @@
 
    ModelManagerPanel.h
    Hugo Flores Garcia
+   Aldo Aguilar
 
 ******************************************************************/
 /**
@@ -27,6 +28,7 @@ class ShuttleGui;
 class ModelCardPanel;
 class ModelManagerPanel;
 
+// The top bar panel 
 class ManagerToolsPanel : public wxPanelWrapper
 {
 public:
@@ -46,6 +48,12 @@ private:
 
 };
 
+// Root class for the manager UI tree. 
+// should hold a ManagerToolsPanel, a scrolled window of 
+// ModelCardPanels, and a single DetailedModelCardPanel for 
+// the current model card. 
+// TODO: should contain logic for populating the scrolled view, 
+// and selecting models. 
 class ModelManagerPanel final : public wxPanelWrapper
 {
    CardFetchedCallback GetCardFetchedCallback();
@@ -65,6 +73,11 @@ private:
    wxScrolledWindow *mScroller;
 
    ManagerToolsPanel *mTools;
+
+   // TODO: need to get rid of the unique ptrs to UI elements
+   // if they're getting added as children of the scroller
+   // wxWidgets should take care of memory management for us. 
+   // could try a shared pointer?  
    std::map<std::string, std::unique_ptr<ModelCardPanel>> mPanels;
    EffectDeepLearning *mEffect;
    

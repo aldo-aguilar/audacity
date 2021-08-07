@@ -6,6 +6,7 @@
 
    ModelManagerPanel.cpp
    Hugo Flores Garcia
+   Aldo Aguilar
 
 ******************************************************************/
 
@@ -23,7 +24,6 @@
 #include <wx/stattext.h>
 
 // ModelManagerPanel
-// TODO: need to get rid of the unique ptrs to UI elements
 ModelManagerPanel::ModelManagerPanel(wxWindow *parent, EffectDeepLearning *effect)
 {
    mEffect = effect;
