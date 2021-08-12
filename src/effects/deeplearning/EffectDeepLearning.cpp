@@ -16,6 +16,7 @@
 #include "FileNames.h"
 #include "Shuttle.h"
 #include "ShuttleGui.h"
+#include "effects/deeplearning/DeepModel.h"
 #include <wx/range.h>
 
 #include <torch/script.h>
@@ -358,11 +359,17 @@ void EffectDeepLearning::SetModel(ModelCardHolder card)
    }
    else
    {
-      if (!(mModel->IsLoaded() && ((*mModel->GetCard()) == (*card))))
-      {
-         mModel = manager.GetModel(card);
-         mCard = card;
+      try {
+         if (!(mModel->IsLoaded() && ((*mModel->GetCard()) == (*card))))
+         {
+            mModel = manager.GetModel(card);
+            mCard = card;
+         }
+         mModelDesc->SetLabel(XO("%s is Ready").Format(mCard->GetRepoID()).Translation());
       }
-      mModelDesc->SetLabel(XO("%s is Ready").Format(mCard->GetRepoID()).Translation());
+      catch (ModelException& e) 
+      {
+         throw e;
+      }
    }  
 }

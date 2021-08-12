@@ -16,6 +16,7 @@
 #include "NetworkManager.h"
 #include "IResponse.h"
 #include "Request.h"
+#include "effects/deeplearning/DeepModel.h"
 
 #include <wx/tokenzr.h>
 #include <wx/log.h>
@@ -78,9 +79,15 @@ DeepModelHolder DeepModelManager::GetModel(ModelCardHolder card)
 
    // GetRepoDir won't work if the card is empty
    wxFileName path = wxFileName(GetRepoDir(card), "model.pt");
-
-   // finally, load
-   model->Load(path.GetFullPath().ToStdString());
+   try
+   {
+      // finally, load
+      model->Load(path.GetFullPath().ToStdString());
+   }
+   catch (ModelException& e) 
+   {
+      throw e;
+   }
 
    return model;
 }
