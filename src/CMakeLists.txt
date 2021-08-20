@@ -579,6 +579,8 @@ list( APPEND SOURCES
          effects/deeplearning/ModelManagerPanel.h
          effects/deeplearning/ModelCardPanel.cpp
          effects/deeplearning/ModelCardPanel.h
+         effects/deeplearning/ExploreHuggingFaceDialog.cpp
+         effects/deeplearning/ExploreHuggingFaceDialog.h
       
          effects/SourceSep.cpp 
          effects/SourceSep.h
