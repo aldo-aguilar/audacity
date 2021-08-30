@@ -584,6 +584,8 @@ list( APPEND SOURCES
       
          effects/SourceSep.cpp 
          effects/SourceSep.h
+         effects/AutoLabeler.cpp
+         effects/AutoLabeler.h
       >
 
       # Export
