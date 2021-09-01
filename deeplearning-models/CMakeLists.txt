@@ -2,6 +2,7 @@ set( TARGET deeplearning-models )
 set( TARGET_ROOT ${topdir}/deeplearning-models )
 
 message( STATUS "========== Configuring ${TARGET} ==========" )
+message(STATUS "${_PKGLIB}")
 
 def_vars()
 
@@ -10,9 +11,15 @@ list( APPEND SOURCES
    modelcard-schema.json
 )
 
+message(STATUS "${_DEST}}")
+
 foreach( source ${SOURCES} )
    set( src "${_SRCDIR}/${source}" )
-   set( dst "${_DEST}/${TARGET}/${source}" )
+   if( CMAKE_SYSTEM_NAME MATCHES "Darwin" )
+      set( dst "${_DEST}/${TARGET}/${source}" )
+   else()
+      set( dst "${_PKGLIB}/${TARGET}/${source}" )
+   endif()
 
    add_custom_command(
       DEPENDS
