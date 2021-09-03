@@ -33,17 +33,26 @@ EffectDeepLearning::EffectDeepLearning()
 
 bool EffectDeepLearning::Init()
 {
-   DeepModelManager &manager = DeepModelManager::Get();
-
-   // try loading the model (if available)
-   mModel = std::make_shared<DeepModel>();
-   if (mCard)
+   // Catch any errors while setting up the DeepModelManager
+   try 
    {
-      if (manager.IsInstalled(mCard))
-         mModel = manager.GetModel(mCard);
-   }
+      DeepModelManager &manager = DeepModelManager::Get();
 
-   return true;
+      // try loading the model (if available)
+      mModel = std::make_shared<DeepModel>();
+      if (mCard)
+      {
+         if (manager.IsInstalled(mCard))
+            mModel = manager.GetModel(mCard);
+      }
+      return true;
+   }
+   catch (InvalidModelCardDocument &e)
+   {
+      Effect::MessageBox(XO("Error initalizing the Model Manager %s.").Format(e.what()),
+      wxICON_ERROR);
+      return false;
+   }
 }
 
 void EffectDeepLearning::End()
