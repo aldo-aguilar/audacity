@@ -2,6 +2,7 @@ set( TARGET deeplearning-models )
 set( TARGET_ROOT ${topdir}/deeplearning-models )
 
 message( STATUS "========== Configuring ${TARGET} ==========" )
+message(STATUS "${_PKGLIB}")
 
 def_vars()
 
@@ -9,6 +10,8 @@ list( APPEND SOURCES
    resampler.pt
    modelcard-schema.json
 )
+
+message(STATUS "${_DEST}}")
 
 foreach( source ${SOURCES} )
    set( src "${_SRCDIR}/${source}" )
