@@ -15,7 +15,7 @@ foreach( source ${SOURCES} )
    else()
       set( dst "${CMAKE_BINARY_DIR}/lib/${TARGET}/${source}" )
    endif()
-   message(STATUS "This is the dst ${dst}")
+
    add_custom_command(
       DEPENDS
          "${src}"
