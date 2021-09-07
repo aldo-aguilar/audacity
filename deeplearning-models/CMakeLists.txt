@@ -1,8 +1,6 @@
 set( TARGET deeplearning-models )
 set( TARGET_ROOT ${topdir}/deeplearning-models )
 
-message( STATUS "========== Configuring ${TARGET} ==========" )
-
 def_vars()
 
 list( APPEND SOURCES
@@ -15,9 +13,9 @@ foreach( source ${SOURCES} )
    if( CMAKE_SYSTEM_NAME MATCHES "Darwin" )
       set( dst "${_DEST}/${TARGET}/${source}" )
    else()
-      set( dst "${_PKGLIB}/${TARGET}/${source}" )
+      set( dst "${CMAKE_BINARY_DIR}/lib/${TARGET}/${source}" )
    endif()
-
+   message(STATUS "This is the dst ${dst}")
    add_custom_command(
       DEPENDS
          "${src}"
