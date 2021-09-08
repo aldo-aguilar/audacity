@@ -20,19 +20,22 @@
 #include "DeepModelManager.h"
 #include "ModelCardPanel.h"
 
+int getScreenWidth();
+int getScreenHeight();
+
 class EffectDeepLearning;
 class ShuttleGui;
 class ModelManagerPanel;
 
-static const int cardPanel_w = 600;
-static const int cardPanel_h = 150;
+static const float cardPanel_w = 6.4;
+static const float cardPanel_h = 14.2;
 static const int cardPanel_x_offset = 20;
 
-static const int detailedCardPanel_w = 400;
-static const int detailedCardPanel_h = 400;
+static const float detailedCardPanel_w = 7.7;
+static const float detailedCardPanel_h = 7.7;
 
-static const int managerPanel_w = cardPanel_w + detailedCardPanel_h + 
-                                   cardPanel_x_offset + 20;
+// static const int managerPanel_w = static_cast<int>(getScreenWidth()/cardPanel_w) + static_cast<int>(getScreenWidth()/detailedCardPanel_h) + 
+//                                    cardPanel_x_offset + 20;
 
 class ManagerToolsPanel : public wxPanelWrapper
 {

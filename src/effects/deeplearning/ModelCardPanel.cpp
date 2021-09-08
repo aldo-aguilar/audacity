@@ -442,7 +442,7 @@ void ModelCardPanel::OnClick(wxMouseEvent &event)
 
 SimpleModelCardPanel::SimpleModelCardPanel(wxWindow *parent, wxWindowID id,
                            ModelCardHolder card, EffectDeepLearning *effect, ModelManagerPanel *managerPanel)
-      : ModelCardPanel(parent, id, card, effect, managerPanel, wxSize(cardPanel_w, cardPanel_h))
+      : ModelCardPanel(parent, id, card, effect, managerPanel, wxSize(static_cast<int>(getScreenWidth()/cardPanel_w), static_cast<int>(getScreenHeight()/cardPanel_h)))
 {
    Populate();
 }
@@ -492,8 +492,8 @@ DetailedModelCardPanel::DetailedModelCardPanel(wxWindow *parent, wxWindowID id,
                                                ModelCardHolder card, EffectDeepLearning *effect, 
                                                 ModelManagerPanel *managerPanel)
       : ModelCardPanel(parent, id, card, effect, managerPanel,
-                       wxSize(detailedCardPanel_w, 
-                              detailedCardPanel_h))
+                       wxSize(static_cast<int>(getScreenWidth()/detailedCardPanel_w), 
+                              static_cast<int>(getScreenWidth()/detailedCardPanel_h)))
 {
    if (card)
       Populate();

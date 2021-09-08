@@ -17,6 +17,7 @@
 #include "Shuttle.h"
 #include "ShuttleGui.h"
 
+#include <wx/display.h>
 #include <wx/scrolwin.h>
 #include <wx/range.h>
 #include <wx/gauge.h>
@@ -47,7 +48,7 @@ ModelManagerPanel::ModelManagerPanel(wxWindow *parent, EffectDeepLearning *effec
 void ModelManagerPanel::PopulateOrExchange(ShuttleGui & S)
 {
    DeepModelManager &manager = DeepModelManager::Get();
-
+   std::cout << "Screen height: " << getScreenHeight() << std::endl;
    S.StartVerticalLay(true);
    {
       mTools = safenew ManagerToolsPanel(S.GetParent(), this);
@@ -60,9 +61,9 @@ void ModelManagerPanel::PopulateOrExchange(ShuttleGui & S)
          {
          }
          S.EndScroller();
-         wxSize size(cardPanel_w+50, detailedCardPanel_h);
-         wxSize vsize(cardPanel_w+cardPanel_x_offset, 
-                     detailedCardPanel_h);
+         wxSize size(static_cast<int>(getScreenWidth()/cardPanel_w)+50, static_cast<int>(getScreenWidth()/detailedCardPanel_h));
+         wxSize vsize(static_cast<int>(getScreenWidth()/cardPanel_w)+cardPanel_x_offset, 
+                     static_cast<int>(getScreenWidth()/detailedCardPanel_h));
          mScroller->SetVirtualSize(vsize);
          mScroller->SetSize(size); 
          mScroller->SetMinSize(size); 
@@ -196,7 +197,8 @@ void ModelManagerPanel::SetSelectedCard(ModelCardHolder card)
 // ManagerToolsPanel
 
 ManagerToolsPanel::ManagerToolsPanel(wxWindow *parent, ModelManagerPanel *panel)
-   : wxPanelWrapper((wxWindow *)parent, wxID_ANY, wxDefaultPosition, wxSize(managerPanel_w, 30))
+   : wxPanelWrapper((wxWindow *)parent, wxID_ANY, wxDefaultPosition, wxSize(static_cast<int>(getScreenWidth()/cardPanel_w) + static_cast<int>(getScreenWidth()/detailedCardPanel_h) + 
+                                   cardPanel_x_offset + 20, static_cast<int>(getScreenHeight()/35)))
 {
    mManagerPanel = panel;
    mFetchStatus = nullptr;
@@ -296,4 +298,18 @@ void ManagerToolsPanel::OnExplore(wxCommandEvent & WXUNUSED(event))
 {
    ExploreHuggingFaceDialog dialog(mManagerPanel->GetParent(), mManagerPanel);
    dialog.ShowModal();
+}
+
+int getScreenWidth() 
+{
+   wxDisplay display((int)0);
+   wxRect screen = display.GetClientArea();
+   return screen.GetWidth();
+}
+
+int getScreenHeight()
+{
+   wxDisplay display((int)0);
+   wxRect screen = display.GetClientArea();
+   return screen.GetHeight();
 }
